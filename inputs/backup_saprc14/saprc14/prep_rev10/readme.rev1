@@ -1,0 +1,6 @@
+This directory contains files for the PREP program as obtained from
+Rob Harley and then modified by Mike Kleeman.  Modifications were
+made to remove all INTEGER*2 and LOGICAL*2 statements and to remove
+the call to ERRSET so that the program would compile and run under AXP.
+
+Mike Kleeman (Oct 1998)

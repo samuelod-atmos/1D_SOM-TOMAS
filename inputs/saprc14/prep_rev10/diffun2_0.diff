@@ -1,0 +1,154 @@
+73,74c73,74
+<  200    FORMAT (6X,'R(',I4,') = ')
+<         LS=16
+---
+>  200    FORMAT (6X,'R(',I3,') = ')
+>         LS=15
+81c81
+<  210                    FORMAT ('RK(',I4,')')
+---
+>  210                    FORMAT ('RK(',I3,')')
+94c94
+<  215            FORMAT (' R(',I4,')')
+---
+>  215            FORMAT (' R(',I3,')')
+102c102
+<         LS=LS+8
+---
+>         LS=LS+7
+120c120
+<  220                            FORMAT ('*A(',I4,')')
+---
+>  220                            FORMAT ('*A(',I3,')')
+123c123
+<  221                            FORMAT ('*C(',I4,')')
+---
+>  221                            FORMAT ('*C(',I3,')')
+125c125
+<                         LS=LS+8
+---
+>                         LS=LS+7
+129,130c129,130
+<  222                    FORMAT ('*CO(',I4,')')
+<                         LS=LS+9
+---
+>  222                    FORMAT ('*CO(',I3,')')
+>                         LS=LS+8
+137,138c137,138
+<  224                            FORMAT ('*RK(',I4,')')
+<                                 LS=LS+9
+---
+>  224                            FORMAT ('*RK(',I3,')')
+>                                 LS=LS+8
+251c251
+<  245    FORMAT (6X,'S(',I4,') = (')
+---
+>  245    FORMAT (6X,'S(',I3,') = (')
+269,270c269,270
+<  250                    FORMAT ('+R(',I4,')')
+<                         LS=LS+8
+---
+>  250                    FORMAT ('+R(',I3,')')
+>                         LS=LS+7
+273,274c273,274
+<  252                    FORMAT ('R(',I4,')')
+<                         LS=LS+7
+---
+>  252                    FORMAT ('R(',I3,')')
+>                         LS=LS+6
+354,355c354,355
+<  260    FORMAT ('(CO(',I4,')')
+<         LS=LS+9
+---
+>  260    FORMAT ('(CO(',I3,')')
+>         LS=LS+8
+405,406c405,406
+<  265                            FORMAT ('+RK(',I4,')')
+<                                 LS=LS+9
+---
+>  265                            FORMAT ('+RK(',I3,')')
+>                                 LS=LS+8
+410c410
+<                                 LS=LS+9
+---
+>                                 LS=LS+8
+415c415
+<                         LS=LS+8
+---
+>                         LS=LS+7
+419c419
+<                         LS=LS+9
+---
+>                         LS=LS+8
+423c423
+<                         LS=LS+9
+---
+>                         LS=LS+8
+428c428
+<                 LS=LS+8
+---
+>                 LS=LS+7
+464c464
+<  280    FORMAT (6X,'R(',I4,') = S(',I4,') *')
+---
+>  280    FORMAT (6X,'R(',I3,') = S(',I3,') *')
+544c544
+<  285    FORMAT (6X,'FR(',I4,') = ')
+---
+>  285    FORMAT (6X,'FR(',I3,') = ')
+574c574
+<                         LS=LS+8
+---
+>                         LS=LS+7
+587c587
+<                                 LS=LS+9
+---
+>                                 LS=LS+8
+651c651
+<  345            FORMAT (6X,'LR(',I4,') = ')
+---
+>  345            FORMAT (6X,'LR(',I3,') = ')
+683c683
+<  267    FORMAT (A1,'RK(',I4,')')
+---
+>  267    FORMAT (A1,'RK(',I3,')')
+685c685
+<         LS=LS+9
+---
+>         LS=LS+8
+700,701c700,701
+< C 221                   FORMAT ('*C(',I4,')')
+<                         LS=LS+8
+---
+> C 221                   FORMAT ('*C(',I3,')')
+>                         LS=LS+7
+704,705c704,705
+<  223                    FORMAT ('*S(',I4,')')
+<                         LS=LS+8
+---
+>  223                    FORMAT ('*S(',I3,')')
+>                         LS=LS+7
+708,709c708,709
+< C 220                   FORMAT ('*A(',I4,')')
+<                         LS=LS+8
+---
+> C 220                   FORMAT ('*A(',I3,')')
+>                         LS=LS+7
+714,715c714,715
+< C 222           FORMAT ('*CO(',I4,')')                  ! (DEFINED ABOVE)
+<                 LS=LS+9
+---
+> C 222           FORMAT ('*CO(',I3,')')                  ! (DEFINED ABOVE)
+>                 LS=LS+8
+721c721
+< C 224                   FORMAT ('*RK(',I4,')')          ! (DEFINED ABOVE)
+---
+> C 224                   FORMAT ('*RK(',I3,')')          ! (DEFINED ABOVE)
+725c725
+<                 LS=LS+9
+---
+>                 LS=LS+8
+747c747
+<                 WRITE (CODEU,'(6X,''LR('',I4,'') = 0.0'')') I-N0
+---
+>                 WRITE (CODEU,'(6X,''LR('',I3,'') = 0.0'')') I-N0

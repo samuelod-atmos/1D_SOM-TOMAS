@@ -1,0 +1,38 @@
+# Makefile for LDAS
+
+# name of executable
+
+ALL   = box.exe
+
+# compiler options
+FF    = gfortran
+#FF    = ifort -C
+FOPTS = 
+
+FOPTS2 = 
+
+########################################################################
+
+# object files 
+OBJS =	box.o	boxinit.o	getlen.o	wallloss.o\
+	tmcond.o 	dmdt_int.o      ezcond.o        ezmass.o    \
+        getCondSink.o  getMassSink.o  soacond.o\
+	multicoag.o\
+	initbounds.o	loginit.o	report.o	\
+	storenm.o	ezwatereqm.o	eznh3eqm.o	\
+	mnfix.o 	waterso4.o	waternacl.o\
+	gasdiff.o	aerodens.o\
+	saprc.o      integr2.o       rhs.o           saprc14_rev1.o
+#########################################################################
+.SUFFIXES:      .f .f90
+
+$(ALL): $(OBJS)
+		$(FF) $(FOPTS) $(OBJS) $(FOPTS2) -o $@
+.f.o: 	
+		$(FF) $(FOPTS) $(FOPTS2) -c $< 
+
+.f90.o: 		
+		$(FF) $(FOPTS) $(FOPTS2) -c $< 
+
+clean:
+	/bin/rm -f *.o *.exe main

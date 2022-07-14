@@ -1,0 +1,21 @@
+!UNCONDENSED FIXED-PARAMETER SAPRC-07 MECHANISM
+!
+!	Default temperature:
+!
+TEMP 300.
+!
+.ACT
+= O3 + NO + NO2
+!
+.COE
+INERT	0.0
+NROG	0.0
+METHANE 0.0
+!
+.UNITS=PPM
+@saprc11b.rxn
+@gas.rxn
+.RXN
+TS01) 5.67e-13 1.002 2.00    ;CHCL3 + OH = xCL + RO2C + yROOH + XC
+TS02) 3.30e-12 1.967         ;CHCL3 + CL = xCL + RO2C + HCL + yROOH + XC
+.END

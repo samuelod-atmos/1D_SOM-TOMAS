@@ -1,0 +1,121 @@
+C       FILE PFALIN.FTN         PREP SUBROUTINE
+C
+C       WRITTEN BY W.P.L. CARTER
+C       LAST UPDATE:  W.P.L. CARTER  6/20/87
+C
+C
+        SUBROUTINE PFALIN (AVGAQ,NWL,PWL,ABSQY,NSWL,SWL)
+C
+C       PROCESSES ABSORPTION COEFFICIENT AND QUANTUM YIELD DATA FOR
+C       USE IN CALCULATING PHOTOLYSIS RATE CONSTANTS FOR SOLAR CONDITIONS.
+C       CALCULATES AVERAGES OF ABSQY(IP), WHICH ARE ASSOCIATED
+C       WITH PWL(IP) (MAX IP=NWL) FOR THE INTERVAL SWL(IS)-SWL(IS+1),
+C       AND PUTS THEM IN AVGAQ(IS) (MAX IS=NSWL)
+C
+C       ABSQY ASSUMED = 0 BELOW LOWEST AND ABOVE HIGHEST WAVELENGTH GIVEN.
+C
+C       NOTE: SWL ACTUALLY DIMENSIONED TO AT LEAST NSWL+1
+C
+C
+C       SPECIFICATIONS FOR ARGUMENTS
+        REAL SWL(*),AVGAQ(NSWL),PWL(NWL),ABSQY(NWL)
+C
+C       THIS ROUTINE DOES NOT INCLUDE ANY OTHER SPECIFICATIONS, ALL
+C       DATA PASSED THROUGH ARGUMENTS.
+C
+C
+C
+C               IF ONLY ONE WL, CAN'T DEFINE AVERAGES, SO ALL 0.
+        IF (NWL.EQ.1) THEN
+                IS=0
+                GOTO 200
+        ENDIF
+C
+C               INITIALIZE
+C
+        IS=1
+C                       ! NEXT AVERAGE TO DEFINE
+        WL1=SWL(1)
+C                       ! AVGAQ(IS) = AVG. BET WL1 AND WL2
+        WL2=SWL(2)
+C
+C               FIND FIRST IP (ABSQY INDEX) THAT IS GE FIRST WL1.
+C
+        DO 10 IP1=1,NWL
+        IF (PWL(IP1)-WL1) 10,12,14
+   10   CONTINUE
+C               ALL PWPL'S LT WL1
+        IS=0
+        GOTO 200
+C               PWL(IP1)= FIRST WL1.  INITIALIZE AREA, 'LAST' WL
+   12   IF (IP1.EQ.NWL) THEN
+C                               ! IF FIRST WHICH = WL1 IS ALSO LAST,
+C                               ! THEN CAN'T DEFINE AREAS, SO ALL 0.
+                IS=0
+                GOTO 200
+        ENDIF
+        WLAST=PWL(IP1)
+        AQLAST=ABSQY(IP1)
+        AREA=0.0
+        IP1=IP1+1
+        GOTO 20
+C               PWL(IP1) > FIRST WL1.  IF THIS ISN'T FIRST PWL,
+C                       DETERMINE ABSQY FOR WL1 BY LINEAR EXTRAPOLATION,
+C                       AND DEFINE WL1 AND THIS ABSQY AS 'LAST' VALUES.
+   14   IF (IP1.EQ.1) GOTO 20
+        WLAST=WL1
+        AQLAST=ABSQY(IP1)+((ABSQY(IP1-1)-ABSQY(IP1))/
+     &   (PWL(IP1)-PWL(IP1-1)))*(PWL(IP1)-WL1)
+        AREA=0.0
+C
+C               LOOP OVER REST OF PWL'S.  NOTE PWL(IP) IS ALWAYS >= WL1
+C
+   20   DO 100 IP=IP1,NWL
+        PWLIP=PWL(IP)
+   30   IF (PWLIP.LE.WL2) GOTO 40
+C               WL1 & WL2 <= WPLIP.  IF THIS IS FIRST WL, THEN AREA IS 0.  IF
+C                       NOT, DETERMINE ABSQY FOR WL2 BY LINEAR
+C                       INTERPOLATION, DEFINE AREA FOR WL1-WL2 AND SET 'LAST'
+C                       WL IS CURRENT WL2.  SET UP NEXT INTERVAL (NEW WL1,
+C                       WL2) FOR AREA CALC.  THEN LOOP BACK AND SEE IF NEW
+C                       WL2 IS STILL LESS THAN PWLIP.
+C
+        IF (IP.EQ.1) THEN
+                AVGAQ(IS)=0.0
+        ELSE
+                AQWL2=ABSQY(IP)+((ABSQY(IP-1)-ABSQY(IP))/
+     &           (PWLIP-PWL(IP-1)))*(PWLIP-WL2)
+                AVGAQ(IS)=0.5*(AREA+(AQWL2+AQLAST)*(WL2-WLAST))
+     &           /(SWL(IS+1)-SWL(IS))
+                WLAST=WL2
+                AQLAST=AQWL2
+        ENDIF
+        IF (IS.EQ.NSWL) RETURN
+        IS=IS+1
+        WL1=WL2
+        WL2=SWL(IS+1)
+        AREA=0.0
+        GOTO 30
+C
+C               WL1 <= PWLIP <= WL2.  ADD TO AREA IF PWLIP NOT FIRST WL,
+C                       AND THEN GO TO NEXT PWL TO GET ADDITIONAL AREA,
+C                       TO INCLUDE IN THIS INTERVAL, IF ANY.
+   40   IF (IP.EQ.1) THEN
+                AREA=0.0
+        ELSE
+                AREA=AREA+(ABSQY(IP)+AQLAST)*(PWLIP-WLAST)
+        ENDIF
+        WLAST=PWLIP
+        AQLAST=ABSQY(IP)
+C
+  100   CONTINUE
+C
+C               NEXT AVGAQ HAS RESIDUAL AREA.  REST ARE 0.
+C
+        AVGAQ(IS)=0.5*AREA/(SWL(IS+1)-SWL(IS))
+        IF (IS.EQ.NSWL) RETURN
+  200   DO 210 I=IS+1,NSWL
+  210   AVGAQ(I)=0.0
+C
+        RETURN
+        END

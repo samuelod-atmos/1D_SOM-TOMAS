@@ -1,0 +1,111 @@
+! Atmospheric Lumped VOC Mechanism
+! Created from Mech11R.xls 9-Apr-2012 13:26
+!
+.RXN
+BE12) 2.33e-12 0.384         ;BENZENE + OH = #.027 RO2XC + #.31 RO2C +
+                              #.57 HO2 + #.31 xHO2 + #.027 zRNO3 +
+                              #.337 yR6OOH + #.57 PHEN + #.31 xGLY +
+                              #.189 xAFG1 + #.121 xAFG2 + #.093 OH +
+                              #.093 AFG3 + #.065 AFG3C + #-0.403 XC
+BL01) 1.34e-12 0.992 2.00    ;ALK1 + OH = xHO2 + RO2C + xCCHO + yROOH
+BL02) 1.49e-12 0.173 2.00    ;ALK2 + OH = #.965 xHO2 + #.965 RO2C +
+                              #.035 RO2XC + #.035 zRNO3 + #.261 xRCHO +
+                              #.704 xACET + yROOH + #-.105 XC
+BL03) 1.51e-12 -0.251        ;ALK3 + OH = #.695 xHO2 + #.236 xTBUO +
+                              #1.253 RO2C + #.07 RO2XC + #.07 zRNO3 +
+                              #.026 xHCHO + #.445 xCCHO + #.122 xRCHO +
+                              #.024 xACET + #.332 xMEK + #.983 yROOH +
+                              #.017 yR6OOH + #-.046 XC
+BL04) 3.75e-12 -0.088        ;ALK4 + OH = #.83 xHO2 + #.01 xMEO2 +
+                              #.011 xMECO3 + #1.763 RO2C + #.149 RO2XC +
+                              #.149 zRNO3 + #.002 xCO + #.029 xHCHO +
+                              #.438 xCCHO + #.236 xRCHO + #.426 xACET +
+                              #.106 xMEK + #.146 xPROD2 + yR6OOH + #-.119 XC
+BL05) 2.70e-12 -0.744        ;ALK5 + OH = #.647 xHO2 + #1.605 RO2C +
+                              #.353 RO2XC + #.353 zRNO3 + #.04 xHCHO +
+                              #.106 xCCHO + #.209 xRCHO + #.071 xACET +
+                              #.086 xMEK + #.407 xPROD2 + yR6OOH + #2.004 XC
+BL06) 6.18e-12 -0.996        ;OLE1 + OH = #.904 xHO2 + #.001 xMEO2 +
+                              #1.138 RO2C + #.095 RO2XC + #.095 zRNO3 +
+                              #.7 xHCHO + #.301 xCCHO + #.47 xRCHO +
+                              #.005 xACET + #.026 xMACR + #.008 xMVK +
+                              #.006 xIPRD + #.119 xPROD2 + #.413 yROOH +
+                              #.587 yR6OOH + #.822 XC
+BL07) 3.15e-15 3.379         ;OLE1 + O3 = #.116 HO2 + #.04 xHO2 + #.193 OH +
+                              #.104 MEO2 + #.063 RO2C + #.004 RO2XC +
+                              #.004 zRNO3 + #.368 CO + #.125 CO2 + #.5 HCHO +
+                              #.147 CCHO + #.007 xCCHO + #.353 RCHO +
+                              #.031 xRCHO + #.002 xACET + #.006 MEK +
+                              #.185 HCOOH + #.022 CCOOH + #.112 RCOOH +
+                              #.189 PROD2 + #.007 yROOH + #.037 yR6OOH +
+                              #.69 XC
+BL08) 4.73e-13 2.081         ;OLE1 + NO3 = #.824 xHO2 + #1.312 RO2C +
+                              #.176 RO2XC + #.176 zRNO3 + #.009 xCCHO +
+                              #.002 xRCHO + #.024 xACET + #.546 xRNO3 +
+                              #.413 yROOH + #.587 yR6OOH + #.454 XN + #.572 XC
+BL09) 1.49e-11 0.648         ;OLE1 + O3P = #.45 RCHO + #.437 MEK + #.113 PROD2 +
+                              #1.224 XC
+BL10) 1.26e-11 -0.969        ;OLE2 + OH = #.914 xHO2 + #.966 RO2C +
+                              #.086 RO2XC + #.086 zRNO3 + #.209 xHCHO +
+                              #.788 xCCHO + #.481 xRCHO + #.136 xACET +
+                              #.076 xMEK + #.027 xMACR + #.002 xMVK +
+                              #.037 xIPRD + #.022 xPROD2 + #.357 yROOH +
+                              #.643 yR6OOH + #.111 XC
+BL11) 8.14e-15 2.494         ;OLE2 + O3 = #.093 HO2 + #.039 xHO2 + #.423 OH +
+                              #.29 MEO2 + #.147 xMECO3 + #.008 xRCO3 +
+                              #.2 RO2C + #.003 RO2XC + #.003 zRNO3 + #.297 CO +
+                              #.162 CO2 + #.152 HCHO + #.108 xHCHO +
+                              #.428 CCHO + #.067 xCCHO + #.315 RCHO +
+                              #.018 xRCHO + #.048 ACET + #.031 MEK +
+                              #.001 xMEK + #.033 HCOOH + #.061 CCOOH +
+                              #.222 RCOOH + #.028 MACR + #.021 MVK +
+                              #.042 PROD2 + #.069 yROOH + #.128 yR6OOH +
+                              #.125 XC
+BL12) 2.20e-13 -0.759        ;OLE2 + NO3 = #.423 xHO2 + #.409 xNO2 +
+                              #.033 xMEO2 + #1.185 RO2C + #.136 RO2XC +
+                              #.136 zRNO3 + #.074 xHCHO + #.546 xCCHO +
+                              #.154 xRCHO + #.11 xACET + #.002 xMEK +
+                              #.026 xMVK + #.007 xIPRD + #.322 xRNO3 +
+                              #.357 yROOH + #.643 yR6OOH + #.269 XN + #.114 XC
+BL13) 1.43e-11 -0.220        ;OLE2 + O3P = #.014 HO2 + #.007 xHO2 +
+                              #.007 xMACO3 + #.013 RO2C + #.001 RO2XC +
+                              #.001 zRNO3 + #.006 xCO + #.074 RCHO + #.709 MEK +
+                              #.006 xMACR + #.202 PROD2 + #.014 yROOH +
+                              #.666 XC
+BL14) 1.97e-12 -0.672        ;ARO1 + OH = #.089 RO2XC + #.622 RO2C + #.167 HO2 +
+                              #.612 xHO2 + #.089 zRNO3 + #.623 yR6OOH +
+                              #.007 xMEO2 + #.049 xBALD + #.064 xPROD2 +
+                              #.003 xCCHO + #.006 xRCHO + #.135 CRES +
+                              #.032 XYNL + #.268 xGLY + #.231 xMGLY +
+                              #.283 xAFG1 + #.216 xAFG2 + #.084 yRAOOH +
+                              #.126 OH + #.126 AFG3 + #.039 AFG3C + #-0.099 XC
+BL15) 2.60e-11               ;ARO2 + OH = #.126 RO2XC + #.651 RO2C + #.083 HO2 +
+                              #.649 xHO2 + #.126 zRNO3 + #.629 yR6OOH +
+                              #.002 xMEO2 + #.038 xBALD + #.025 xPROD2 +
+                              #.004 xRCHO + #.083 XYNL + #.14 xGLY +
+                              #.336 xMGLY + #.109 xBACL + #.093 xAFG4 +
+                              #.252 xAFG1 + #.24 xAFG2 + #.148 yRAOOH +
+                              #.14 OH + #.14 AFG3 + #.035 AFG3C + #1.428 XC
+BL16) 1.87e-11 -0.864        ;TERP + OH = #.759 xHO2 + #.042 xRCO3 +
+                              #1.147 RO2C + #.2 RO2XC + #.2 zRNO3 + #.001 xCO +
+                              #.264 xHCHO + #.533 xRCHO + #.036 xACET +
+                              #.005 xMEK + #.009 xMGLY + #.014 xBACL +
+                              #.002 xMVK + #.001 xIPRD + #.255 xPROD2 + yR6OOH +
+                              #5.056 XC
+BL17) 9.57e-16 1.560         ;TERP + O3 = #.052 HO2 + #.067 xHO2 + #.585 OH +
+                              #.126 xMECO3 + #.149 xRCO3 + #.875 RO2C +
+                              #.203 RO2XC + #.203 zRNO3 + #.166 CO + #.019 xCO +
+                              #.045 CO2 + #.079 HCHO + #.15 xHCHO + #.22 xRCHO +
+                              #.165 xACET + #.004 MEK + #.107 HCOOH +
+                              #.043 RCOOH + #.001 xGLY + #.002 xMGLY +
+                              #.055 xBACL + #.001 xMACR + #.001 xIPRD +
+                              #.409 PROD2 + #.545 yR6OOH + #3.526 XC
+BL18) 1.28e-12 -0.974        ;TERP + NO3 = #.162 xHO2 + #.421 xNO2 +
+                              #.019 xRCO3 + #1.509 RO2C + #.397 RO2XC +
+                              #.397 zRNO3 + #.01 xCO + #.017 xHCHO +
+                              #.001 xCCHO + #.509 xRCHO + #.175 xACET +
+                              #.001 xMGLY + #.003 xMACR + #.001 xMVK +
+                              #.002 xIPRD + #.163 xRNO3 + yR6OOH + #.416 XN +
+                              #4.473 XC
+BL19) 3.71e-11               ;TERP + O3P = #.147 RCHO + #.853 PROD2 + #4.441 XC
+.

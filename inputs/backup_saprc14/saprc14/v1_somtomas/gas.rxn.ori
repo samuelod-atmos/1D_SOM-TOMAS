@@ -1,0 +1,209 @@
+!----------------------------------------------------------------------------
+!              DUMMY REACTIONS AND GAS TO PARTICLE CONVERSION REACTIONS
+!
+!  Written by:  Mike Kleeman (Sept 1995)
+!               Environmental Engineering
+!               California Institute of Technology
+!               Pasadena CA 91125
+!
+!	Updated by MJM 11/8/03
+!	Added #S's to species definitions
+!
+!
+!  The purpose of this module is to specify dummy reactions for certain
+!  variables so that the prep program does not delete them from the active
+!  array.  This file also defines any gas to particle conversion reactions
+!  which must be considered in the gas phase mechanism.  When using the split
+!  operator formulation, only those gas phase species in steady state which
+!  undergo gas to particle conversion need to be included.
+!
+!  References for this work are:
+!
+!  1. W.Carter,"Documentation For The SAPRC Atmospheric Photochemical
+!  Mechanism Preparation And Emissions Processing Programs For
+!  Implementation In Airshed Models", California Air Resources Board,
+!  contract# a5-122-32, October 1988.
+!
+!  2. W.Jaeschke,"Chemistry Of Multiphase Atmospheric Systems", NATO ASI
+!  Series, 1983.
+!
+! Active species in this file:
+.ACT
+!	 ---- Defaults for ----
+!       Conc(0)  Mwt   #C's  #N's #S's #X's
+!
+HCL        0.0  36.46   0     0    0
+NH3        0.0  17.03   0     1    0    0
+GDENS      0.0   0      0     0    0    0
+MMOLES     0.0   0      0     0    0    0
+XICBC      0.0   0.0    0     0    0 
+YICBC      0.0   0.0    0     0    0
+ZICBC      0.0   0.0    0     0    0
+!N(V)             0.0    63.02   0.0   1
+!N(V)_N1        0.0    63.02   0.0   1
+!N(V)_N2        0.0    63.02   0.0   1
+!N(V)_N3        0.0    63.02   0.0   1
+!N(V)_N4        0.0    63.02   0.0   1
+!N(V)_N5        0.0    63.02   0.0   1
+!N(V)_N6        0.0    63.02   0.0   1
+!N(V)_N7        0.0    63.02   0.0   1
+!N(V)_N8        0.0    63.02   0.0   1
+!N(-III)        0.000E+00  17.03
+!N(-III)_N1   0.000E+00  17.03
+!N(-III)_N2   0.000E+00  17.03
+!N(-III)_N3   0.000E+00  17.03
+!N(-III)_N4   0.000E+00  17.03
+!N(-III)_N5   0.000E+00  17.03
+!N(-III)_N6   0.000E+00  17.03
+!N(-III)_N7   0.000E+00  17.03
+!N(-III)_N8   0.000E+00  17.03
+!S(VI)      0.0   98.08   0.0   0
+!S(VI)_S1 0.0   98.08   0.0   0
+!S(VI)_S2 0.0   98.08   0.0   0
+!S(VI)_S3 0.0   98.08   0.0   0
+!S(VI)_S4 0.0   98.08   0.0   0
+!S(VI)_S5 0.0   98.08   0.0   0
+!S(VI)_S6 0.0   98.08   0.0   0
+!S(VI)_S7 0.0   98.08   0.0   0
+!S(VI)_S8 0.0   98.08   0.0   0
+SV.ALK   0.0   150.0   0.0  0  0  1
+SV.XYL1  0.0   192.0   0.0  0  0  1
+SV.XYL2  0.0   192.0   0.0  0  0  1
+SV.XYL3  0.0   192.0   0.0  0  0  1
+SV.TOL1  0.0   168.0   0.0  0  0  1
+SV.TOL2  0.0   168.0   0.0  0  0  1
+SV.TOL3  0.0   168.0   0.0  0  0  1
+SV.BNZ1  0.0   144.0   0.0  0  0  1
+SV.BNZ2  0.0   144.0   0.0  0  0  1
+SV.BNZ3  0.0   144.0   0.0  0  0  1
+SV.TRP1  0.0   168.0   0.0  0  0  1
+SV.TRP2  0.0   168.0   0.0  0  0  1
+SV.ISO1  0.0    96.0   0.0  0  0  1
+SV.ISO2  0.0    96.0   0.0  0  0  1
+SV.SQT   0.0   378.0   0.0  0  0  1
+! These are actually PM10 species totals tracked in gas array for convenience
+AALK     0.0   150.0   0.0  0  0  1
+AXYL1    0.0   192.0   0.0  0  0  1
+AXYL2    0.0   192.0   0.0  0  0  1
+ATOL1    0.0   168.0   0.0  0  0  1
+ATOL2    0.0   168.0   0.0  0  0  1
+ABNZ1    0.0   144.0   0.0  0  0  1
+ABNZ2    0.0   144.0   0.0  0  0  1
+ATRP1    0.0   168.0   0.0  0  0  1
+ATRP2    0.0   168.0   0.0  0  0  1
+AISO1    0.0    96.0   0.0  0  0  1
+AISO2    0.0    96.0   0.0  0  0  1
+ASQT     0.0   378.0   0.0  0  0  1
+AXYL3    0.0   192.0   0.0  0  0  1
+ATOL3    0.0   168.0   0.0  0  0  1
+ABNZ3    0.0   144.0   0.0  0  0  1
+AOLGA    0.0   500.0   0.0  0  0  1
+AOLGB    0.0   600.0   0.0  0  0  1
+AISO3    0.0   500.0   0.0  0  0  1
+!
+!
+!	Select species to type
+.TYP
+!	---- Select appropriate type-o-matic behavior ----
+!	Atom   #sources
+!
+!NH3       N       9
+AALK       X       9
+AXYL1      X       9
+AXYL2      X       9
+ATOL1      X       9
+ATOL2      X       9
+ABNZ1      X       9
+ABNZ2      X       9
+ATRP1      X       9
+ATRP2      X       9
+AISO1      X       9
+AISO2      X       9
+ASQT       X       9
+AXYL3      X       9
+ATOL3      X       9
+ABNZ3      X       9
+AOLGA      X       9
+AOLGB      X       9
+AISO3      X       9
+!
+! Units in this file are not to be altered by the prep program:
+.UNITS=OK
+!
+! Semivolatile organic yields.  Note dummy rate constant of 1.0 min-1.
+! Yield information obtained from CMAQ module orgaer5.f
+.RXN
+G1) 1.000E00  0.00  0.00; ALK5RXN = #0.0409 SV.ALK
+G2) 1.000E00  0.00  0.00; XYLNRXN = #0.0386 SV.XYL1 + #0.1119 SV.XYL2
+G3) 1.000E00  0.00  0.00; XYLHRXN = #0.373 SV.XYL3
+G4) 1.000E00  0.00  0.00; TOLNRXN = #0.0758 SV.TOL1 + #0.1477 SV.TOL2
+G5) 1.000E00  0.00  0.00; TOLHRXN = #0.471 SV.TOL3
+! G6 modified to use lower yield for SV.BNZ2.  SAPRC compiler won't 
+! allow us to create mass for typed species. MJK 1/2012
+!G6) 1.000E00  0.00  0.00; BNZNRXN = #0.0942 SV.BNZ1 + #1.162 SV.BNZ2
+G6) 1.000E00  0.00  0.00; BNZNRXN = #0.0942 SV.BNZ1 + #0.900 SV.BNZ2
+G7) 1.000E00  0.00  0.00; BNZHRXN = #0.484 SV.BNZ3
+G8) 1.000E00  0.00  0.00; TRPRXN = #0.1123 SV.TRP1 + #0.5013 SV.TRP2
+G9) 1.000E00  0.00  0.00; ISOPRXN = #0.232 SV.ISO1 + #0.0288 SV.ISO2
+! G10 modified to use lower yield for SV.SQT.  SAPRC compiler won't 
+! allow us to create mass for typed species. MJK 1/2012
+!G10) 1.000E00  0.00  0.00; SESQRXN = #1.3 SV.SQT
+G10) 1.000E00  0.00  0.00; SESQRXN = #1.0 SV.SQT
+! Dummy reactions specified:
+.RXN
+D1)  1.000E-25   0.00   0.000;  HCL = HCL
+D2)  1.000E-25   0.00   0.000;  NH3 = NH3
+!E15) 1.000E-20   0.00   0.000;  N(-III) = N(-III)
+!E16) 1.000E-20   0.00   0.000;  N(-III)_N1 = N(-III)_N1
+!E17) 1.000E-20   0.00   0.000;  N(-III)_N2 = N(-III)_N2
+!E18) 1.000E-20   0.00   0.000;  N(-III)_N3 = N(-III)_N3
+!E19) 1.000E-20   0.00   0.000;  N(-III)_N4 = N(-III)_N4
+!E20) 1.000E-20   0.00   0.000;  N(-III)_N5 = N(-III)_N5
+!E21) 1.000E-20   0.00   0.000;  N(-III)_N6 = N(-III)_N6
+!E22) 1.000E-20   0.00   0.000;  N(-III)_N7 = N(-III)_N7
+!E23) 1.000E-20   0.00   0.000;  N(-III)_N8 = N(-III)_N8
+!E24) 1.000E-20   0.00   0.000;  N(V) = N(V)
+!E25) 1.000E-20   0.00   0.000;  N(V)_N1 = N(V)_N1
+!E26) 1.000E-20   0.00   0.000;  N(V)_N2 = N(V)_N2
+!E27) 1.000E-20   0.00   0.000;  N(V)_N3 = N(V)_N3
+!E28) 1.000E-20   0.00   0.000;  N(V)_N4 = N(V)_N4
+!E29) 1.000E-20   0.00   0.000;  N(V)_N5 = N(V)_N5
+!E30) 1.000E-20   0.00   0.000;  N(V)_N6 = N(V)_N6
+!E31) 1.000E-20   0.00   0.000;  N(V)_N7 = N(V)_N7
+!E32) 1.000E-20   0.00   0.000;  N(V)_N8 = N(V)_N8
+!E33) 1.000E-20   0.00   0.000;  S(VI) = S(VI)
+!E34) 1.000E-20   0.00   0.000;  S(VI)_S1 = S(VI)_S1
+!E35) 1.000E-20   0.00   0.000;  S(VI)_S2 = S(VI)_S2
+!E36) 1.000E-20   0.00   0.000;  S(VI)_S3 = S(VI)_S3
+!E37) 1.000E-20   0.00   0.000;  S(VI)_S4 = S(VI)_S4
+!E38) 1.000E-20   0.00   0.000;  S(VI)_S5 = S(VI)_S5
+!E39) 1.000E-20   0.00   0.000;  S(VI)_S6 = S(VI)_S6
+!E40) 1.000E-20   0.00   0.000;  S(VI)_S7 = S(VI)_S7
+!E41) 1.000E-20   0.00   0.000;  S(VI)_S8 = S(VI)_S8
+F1)  1.000E-25   0.00   0.000;  AALK = AALK
+F2)  1.000E-25   0.00   0.000;  AXYL1 = AXYL1
+F3)  1.000E-25   0.00   0.000;  AXYL2 = AXYL2
+F4)  1.000E-25   0.00   0.000;  ATOL1 = ATOL1
+F5)  1.000E-25   0.00   0.000;  ATOL2 = ATOL2
+F6)  1.000E-25   0.00   0.000;  ABNZ1 = ABNZ1
+F7)  1.000E-25   0.00   0.000;  ABNZ2 = ABNZ2
+F8)  1.000E-25   0.00   0.000;  ATRP1 = ATRP1
+F9)  1.000E-25   0.00   0.000;  ATRP2 = ATRP2
+F10)  1.000E-25   0.00   0.000;  AISO1 = AISO1
+F11)  1.000E-25   0.00   0.000;  AISO2 = AISO2
+F12)  1.000E-25   0.00   0.000;  ASQT = ASQT
+F13)  1.000E-25   0.00   0.000;  AXYL3 = AXYL3
+F14)  1.000E-25   0.00   0.000;  ATOL3 = ATOL3
+F15)  1.000E-25   0.00   0.000;  ABNZ3 = ABNZ3
+F16)  1.000E-25   0.00   0.000;  AOLGA = AOLGA
+F17)  1.000E-25   0.00   0.000;  AOLGB = AOLGB
+F18)  1.000E-25   0.00   0.000;  AISO3 = AISO3
+D3)  1.000E-25   0.00   0.000;  GDENS = GDENS
+D4)  1.000E-25   0.00   0.000;  MMOLES = MMOLES
+D5)  1.000E-25   0.00   0.000;  XICBC = XICBC
+D6)  1.000E-25   0.00   0.000;  YICBC = YICBC
+D7)  1.000E-25   0.00   0.000;  ZICBC = ZICBC
+!
+.
+!
+! End of file

@@ -1,0 +1,14 @@
+MITC Absorption Cross Sections
+! Alvarez, R. A. and B. Moore (1994): "Quantum Yield for Production of CH3NC in the Photolysis of CH3NCS," Science, 263, 205-207.
+0.2856 3.44e-20
+0.2900 2.66e-20
+0.2975 1.70e-20
+0.3025 1.23e-20
+0.3075 8.52e-21
+0.3125 5.63e-21
+0.3175 3.48e-21
+0.3225 1.96e-21
+0.3275 9.60e-22
+0.3325 4.00e-22
+0.3375 1.70e-22
+0.3400 0

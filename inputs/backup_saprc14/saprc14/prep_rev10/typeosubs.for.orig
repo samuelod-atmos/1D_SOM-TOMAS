@@ -1,0 +1,1252 @@
+C	TYPEOSUBS.FOR
+C
+C
+C       Subroutines included to support the TYPEO.for procedures
+C
+C		TSPCNAM - map typed specied to array index, add if new
+C		TPNTRXN - printout the typed reactions to name.pro2 file
+c		TYPRXN  - type the reaction
+C
+C
+C
+C -----------------------------------------------------------------------------
+c
+c      Check to see if reaction irxn contains species tname(k), hence typing
+C
+       subroutine TYPRXN(k,irxn)
+c
+c
+c
+       integer i,j,k,jcoef,irxn,tmpi
+       integer itreac,itprod
+       logical isit,reac
+       character*16 aname
+C
+        INCLUDE 'pspecs.inc'
+C
+       ntreac = 0
+       ntprod = 0
+       tmpi = 0 
+       isit = .false.
+       reac = .false.
+c
+       write(aname,'a16') tatom(k)
+       call movlft(aname)
+c
+c  lets check the reactants first to see if there are any requiring typing
+c
+       do 1000 i=1,nrtosr(irxn)
+         itreac = irtosr(i,irxn)
+c if itreac > 0 then it's  species, check it! coef are not typed
+         if(itreac.gt.0) then
+c          check to see if itreac has a tatom(k)
+           call chktspc(k,itreac,isit,.true.)
+           if (isit.eq..true.) then
+             reac = .true.
+           end if
+         end if
+ 1000  continue
+       do 1200 i=NPRODS(irxn),NPRODS(irxn+1)-1
+         itprod = iprods(i)
+         if(itprod.gt.0) then
+           call chktspc(k,itprod,isit,.false.)
+           if (isit.eq..true.) then
+             reac = .true.
+c             if tmpi is .lt. 0 then there is a coeficient in front of this typed species
+             if (tmpi .lt. 0) then
+c             add current species to the list number of times corresponding to coefficient
+              jcoef = coef(-tmpi)
+              do 1300 j=2,jcoef
+                call chktspc(k,itprod,isit,.false.)
+                write(icrt,4000) name(itprod),jcoef
+ 1300         continue
+           tmpi = 0
+ 4000        format('Species ',a16,' has coefficient ',i8)
+             end if
+           end if
+         else
+c            it's a coeficient, so keep 
+           tmpi = itprod
+         end if
+ 1200  continue
+c
+c      check to see if the reaction has already been typed for this atom
+c        if so, nothing to do, otherwise expand the reaction
+c
+       if (reac.eq..true.) then
+c
+c nitrogen
+c
+         if (aname(1:1).eq.'N') then
+           do 2000 i=1,nntypd
+c              if irxn has been expanded for tatom(k) nothing to do
+             if(typdnrxn(i).eq.irxn) then
+               write(typ1,8900)
+               goto 9000
+             end if
+ 2000      continue
+c
+c            irxn requires N typing!
+c
+           nntypd = nntypd+1
+           typdnrxn(nntypd)=irxn
+           call EXPANDRXN(k,aname(1:1),irxn)
+c
+c sulfur
+c
+         else if (aname(1:1).eq.'S') then
+           do 2100 i=1,nstypd
+c              if irxn has been expanded for tatom(k) nothing to do
+             if(typdsrxn(i).eq.irxn) then
+               write(typ1,8900)
+               goto 9000
+             end if
+ 2100      continue
+c
+c            irxn requires S typing!
+c
+           nstypd = nstypd+1
+           typdsrxn(nstypd)=irxn
+           call EXPANDRXN(k,aname(1:1),irxn)
+c
+c carbon
+c
+         else if (aname(1:1).eq.'C') then
+           do 2200 i=1,nctypd
+c              if irxn has been expanded for tatom(k) nothing to do
+             if(typdcrxn(i).eq.irxn) then
+               write(typ1,8900)
+               goto 9000
+             end if
+ 2200      continue
+c
+c            irxn requires C typing!
+c
+           nctypd = nctypd+1
+           typdcrxn(nctypd)=irxn
+           call EXPANDRXN(k,aname(1:1),irxn)
+c
+c species
+c
+         else if (aname(1:1).eq.'-') then
+           do 2300 i=1,n_typd
+c              if irxn has been expanded for tatom(k) nothing to do
+             if(typd_rxn(i).eq.irx) then
+               write(typ1,8900)
+               goto 9000
+             end if
+ 2300      continue
+c
+c           irxn requires species expansion
+c
+           n_typd = n_typd+1
+           typd_rxn(n_typd)=irxn
+           call EXPANDRXN(k,aname(1:1),irxn)
+         else
+         endif
+       end if
+c
+ 9000  continue
+ 8900  format(24x,'Reaction has been previously typed',/)
+c
+       return
+c
+c end of TYPRXN(k,irxn)
+       end
+C
+C -----------------------------------------------------------------------------
+c
+c      Check to see if species itspc in current reaction requires expansion
+C
+       subroutine chktspc(k,itspc,isit,reac)
+c
+       integer i,k,itspc
+       logical isit,reac
+       character*16 aname
+C
+        INCLUDE 'pspecs.inc'
+C
+c
+       isit = .false.
+       write(aname,'a16') tatom(k)
+       call movlft(aname)
+c
+c      if its a reactant do one thing, if false it's a product
+c         so do another
+c
+       if(reac.eq..true.) then
+         if (aname(1:1).eq.'N') then
+           if(nno(itspc).gt.0) then
+             ntreac = ntreac + 1
+             treac(ntreac,1)=itspc
+             treac(ntreac,2)=nno(itspc)
+             isit=.true.
+           end if
+         else if (aname(1:1).eq.'S') then
+           if(sno(itspc).gt.0) then
+             ntreac = ntreac + 1
+             treac(ntreac,1)=itspc
+             treac(ntreac,2)=sno(itspc)
+             isit=.true.
+           end if
+         else if (aname(1:1).eq.'C') then
+           if(cno(itspc).gt.0) then
+             ntreac = ntreac + 1
+             treac(ntreac,1)=itspc
+             treac(ntreac,2)=cno(itspc)
+             isit=.true.
+           end if
+         else if (aname(1:1).eq.'-') then
+             ntreac = ntreac + 1
+             treac(ntreac,1)=itspc
+             treac(ntreac,2)=0
+             isit=.true.
+         else
+           write(TYP1,7900) aname
+ 7900      format('unable to process ',a16)
+         end if
+         if(isit.eq..false.) then
+           write(TYP1,8000) name(itspc),aname(1:1)
+ 8000      format(24x,'reactant ',a16,'does not have a ',a1,' atom') 
+         else
+           write(TYP1,8100) name(treac(ntreac,1))
+     &          ,treac(ntreac,2),aname(1:1)
+ 8100      format(24x,'reactant ',a16,' has',i8,' ',a1,' atoms to type')
+         end if
+       else
+c         it must be a product were checking
+         if (aname(1:1).eq.'N') then
+           if(nno(itspc).gt.0) then
+             ntprod = ntprod + 1
+             tprod(ntprod,1)=itspc
+             tprod(ntprod,2)=nno(itspc)
+             isit=.true.
+           end if
+         else if (aname(1:1).eq.'S') then
+           if(sno(itspc).gt.0) then
+             ntprod = ntprod + 1
+             tprod(ntprod,1)=itspc
+             tprod(ntprod,2)=sno(itspc)
+             isit=.true.
+           end if
+         else if (aname(1:1).eq.'C') then
+           if(cno(itspc).gt.0) then
+             ntprod = ntprod + 1
+             tprod(ntprod,1)=itspc
+             tprod(ntprod,2)=cno(itspc)
+             isit=.true.
+           end if
+         else if (aname(1:1).eq.'-') then
+             ntprod = ntprod + 1
+             tprod(ntprod,1)=itspc
+             tprod(ntprod,2)=0
+             isit=.true.
+         else
+           write(TYP1,7905) aname
+ 7905      format('unable to process ',a16)
+         end if
+         if(isit.eq..false.) then
+           write(TYP1,8300) name(itspc),aname(1:1)
+ 8300      format(24x,' product ',a16,'does not have a ',a1,' atom') 
+         else
+           write(TYP1,8400) name(tprod(ntprod,1))
+     &          ,tprod(ntprod,2),aname(1:1)
+ 8400      format(24x,' product ',a16,' has',i8,' ',a1,' atoms to type')
+         end if
+       endif
+c
+       if(isit.eq..true.) then
+         i=0
+         call tspcnam(i,name(itspc),.true.)
+         if (i.gt.0) then
+           tatom(i) = tatom(k)
+           ttypes(i) = ttypes(k)
+         end if
+       end if
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine REACTWRITE(j,jrxn,sname)
+c
+c writes the reactant name to the outbuf
+c
+       include 'pspecs.inc'
+c
+       integer j,L,jrxn
+       character*16 sname
+c
+       L=1
+         call MOVLFT(sname)
+           do 3155 while (sname(L:L).ne.' ')
+             jj = jj + 1
+             outbuf(jj:jj) = sname(L:L)
+             L = L + 1
+ 3155      continue
+          outbuf(jj+1:jj+1) = ' '
+       if(j.lt.nrtosr(jrxn)) then
+          if(irtosr(j,jrxn) .gt.0) then
+            outbuf(jj+2:jj+2) = '+'
+          endif
+       else
+          outbuf(jj+2:jj+2) = '='
+       endif
+          outbuf(jj+3:jj+3) = ' '
+       jj = jj+3
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine PRODWRITE(ip,j,jrxn,sname)
+c
+c writes the product name to the outbuf
+c
+       include 'pspecs.inc'
+c
+       integer ip,j,L,jrxn
+       character*16 sname
+c
+       L=1
+         call MOVLFT(sname)
+           do 3165 while (sname(L:L).ne.' ')
+             jj = jj + 1
+             outbuf(jj:jj) = sname(L:L)
+             L = L + 1
+ 3165      continue
+          outbuf(jj+1:jj+1) = ' '
+       if(j.lt.ip-1 .and. iprods(nprods(jrxn)+j).gt.0) then
+          outbuf(jj+2:jj+2) = '+'
+          outbuf(jj+3:jj+3) = ' '
+           jj = jj + 3
+       else
+           jj = jj + 1
+       endif
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine CoefReact(j,jrxn)
+c
+       include 'pspecs.inc'
+c
+       integer j,jrxn
+       character*16 sname
+c
+       if(-irtosr(j,jrxn) .gt. maxmax) then
+          write(sname, '(a16)')
+     &        rxnlbl(-irtosr(j,jrxn) - maxmax)
+          jj = jj + 5
+          outbuf(jj-4:jj) = '#RCON'
+       else if(-irtosr(j,jrxn) .lt. ncoc2 .and.
+     &     -irtosr(j,jrxn) .gt. ncoc1) then
+          write(sname,'(f16.3)') coef(-irtosr(j,jrxn))
+          jj = jj + 1
+          outbuf(jj:jj) = '#'
+       else if(-irtosr(j,jrxn) .ne. 0) then
+          write(sname,'(a16)') coefnm(-irtosr(j,jrxn))
+          jj = jj + 1
+          outbuf(jj:jj) = '#'
+       else
+          write (icrt,*) 'coefnm(0) is an error'
+       endif
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine SingleReact(i,j,irxn,jrxn)
+c
+       include 'pspecs.inc'
+c
+       integer i,j,irxn,jrxn
+c
+c      i is the index for the source index
+c      j is the 1,nrtosr(jrxn)
+c      jrxn is the reaction index being expanded
+c
+       if(irtosr(j,irxn).eq.treac(1,1)) then
+          irtosr(j,jrxn) = esreac(1,i)
+       else
+          irtosr(j,jrxn) = irtosr(j,irxn)
+       endif
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine DoubleReact(i,j,irxn,jrxn)
+c
+       include 'pspecs.inc'
+c 
+       integer i,j,irxn,jrxn,isSet,numTypes,iesp
+     &          ,itmp
+c
+c      i is the index for the source index
+c      j is the 1,nrtosr(jrxn)
+c      jrxn is the reaction index being expanded
+c
+c
+       isSet = 0
+c
+c loop over the reacts to see if there is a match
+C
+       do 1000 L = min(j,ntreac),ntreac
+c
+        if(L .eq. 3) write(icrt,*) 'j=3'
+c
+         if(irtosr(j,irxn).eq.treac(L,1)) then
+c
+c now, we have to decide if its a two single or one double species and pick 
+c    the index on esreac appropriately.  If its a double species (eg N2O5)
+c    the expanded reaction number i is appropriate, otherwise it's
+c    a calculation
+c
+            if (treac(L,2) .eq. 2 
+     &            .and. i.gt.j) then
+               itmp = i
+               i = j
+               j = itmp
+            endif
+c
+c              write(icrt,*) 'it thinks its double'
+ 9000  format('it thinks its double')
+c
+              call tspcnam(iesp,name(treac(L,1)),.true.)
+              numTypes = ttypes(iesp) + 1
+              itmp = i/numTypes
+              if(L .eq. 1) then
+                if (itmp .gt. 0) then
+c
+c              write(icrt,8900) i,j,itmp
+ 8900  format(/,'This is the first expansion',i4,i4,8x,i4,/)
+c
+                  irtosr(j,jrxn) = esreac(L,itmp)
+                  isSet = 1
+                endif
+              else
+                if ((i - itmp*numTypes) .gt. 0) then
+                  irtosr(j,jrxn) = esreac(L,(i - itmp*numTypes))
+c
+c              write(icrt,8800) i, j, i-itmp*numTypes
+ 8800  format( 'This is the second expansion.i, j, and index',
+     &            i4,i4,8x,i4)
+c
+                  isSet = 1
+                endif
+              endif
+c
+            if (treac(L,2) .eq. 2 
+     &            .and. j.gt.i) then
+               itmp = i
+               i = j
+               j = itmp
+            endif
+         goto 1100
+         endif
+ 1000  continue
+c
+c  if the species is not one of the expanded ones, it is simply what is is
+c
+ 1100  continue
+       if(isSet .eq. 0) then
+          irtosr(j,jrxn) = irtosr(j,irxn)
+       endif
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine TripleReact(i,j,irxn,jrxn)
+c
+       include 'pspecs.inc'
+c 
+       integer i,j,irxn,jrxn
+c
+       if(irtosr(j,irxn).eq.treac(1,1)) then
+          irtosr(j,jrxn) = esreac(1,i)
+       else
+          irtosr(j,jrxn) = irtosr(j,irxn)
+       endif
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine SingleProd(i,j,irxn,jrxn)
+c
+       include 'pspecs.inc'
+c 
+       integer i,j,irxn,jrxn
+c
+       if(iprods(nprods(irxn)+j).eq.tprod(1,1)) then
+          iprods(nprods(jrxn)+j) = esprod(1,i)
+       else
+          iprods(nprods(jrxn)+j) = 
+     &      iprods(nprods(irxn)+j)
+       endif
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       integer FUNCTION GETDBLSPC(iesp, i, j)
+c
+       include 'pspecs.inc'
+c
+       integer iesp,i,j
+c
+       write(icrt,*) '      in GetDBLSPCI'
+c
+       GETDBLSPC = 0
+c
+       write (icrt,9000) GETDBLSPC
+ 9000  format(24x,i8)
+c
+       do 1000 i = 0,(ttypes(iesp) + 1)
+         do 1100 j = max(i,1),ttypes(iesp)
+           GETDBLSPC = GETDBLSPC + 1
+ 1100    continue
+ 1000  continue
+c
+       write (icrt,9005) i,j,GETDBLSPC
+ 9005  format(24x,i8,i8,i8)
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine DoubleProd(i,j,irxn,jrxn)
+c
+       include 'pspecs.inc'
+c 
+       integer i,j,irxn,jrxn,isSet,L
+     &          ,iesp,numTypes,itmp,icof
+     &          ,dblspci,dsi,dsj
+c
+c oip = original rxn ip & eip = expanded rxn ip
+c
+       isSet = 0
+c
+c  run through the list of possibilities for what we need to do to insert 
+c   typed product species.  If not a typed species, just copy original
+c
+c
+       do 1000 L = min(j+1,ntprod),ntprod
+c
+c if oip = eip then just check for the typed species, otherwise it's a
+c   double reactant splitting into two singles and requires some processing
+c
+c       write(icrt,9000) oip,eip
+ 9000  format('Original number of products ',i4, ' eip ',i4)
+c
+        if (iprods(nprods(irxn)+j).eq.tprod(L,1)) then
+c
+c figure out the index based on whether it's a double or single order prod
+c
+c
+          call tspcnam(iesp,name(tprod(L,1)),.true.)
+c
+          numTypes = ttypes(iesp) + 1
+          itmp = i/numTypes
+c
+          if (tprod(L,2) .lt. 2) then
+            if(L .eq. 1) then
+              if (itmp .gt. 0) then
+c
+c                write(icrt,8900) i,j,itmp
+ 8900  format(/,'This is the first expansion',i4,i4,8x,i4,/)
+c
+                 iprods(nprods(jrxn)+j) = esprod(L,itmp)
+                 isSet = 1
+              endif
+            else
+              if ((i - itmp*numTypes) .gt. 0) then
+c
+c               write(icrt,8800) i, j, i-itmp*numTypes
+ 8800  format( 'This is the second expansion.i, j, and index',
+     &            i4,i4,8x,i4)
+                iprods(nprods(jrxn)+j)=esprod(L,(i-itmp*numTypes))
+                isSet = 1
+              endif
+            endif
+          else
+             
+c            dblspci = 1 
+c            do 5000 dsi = 0,itmp
+c              do 5100 dsj = max(dsi,1),(i-itmp*numTypes)
+c                 dblspci = dblspci + 1
+c 5100         continue
+c 5000       continue
+c 4900       continue
+c
+c            write(icrt,8805) i
+ 8805  format(24x,'i = ',i8)
+c
+            iprods(nprods(jrxn)+j)=esprod(L,i)
+            isSet = 1
+          endif
+c
+c
+          goto 1100
+        endif
+ 1000  continue
+c
+c evidently, the current product is not a typed species, so just copy it
+c
+ 1100  continue
+c
+       if (isSet .eq. 0) then
+          iprods(nprods(jrxn)+j) = 
+     &      iprods(nprods(irxn)+j)
+       endif
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine TripleProd(i,j,irxn,jrxn)
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       integer FUNCTION NUMEXPRXN(k,rord,pord)
+c
+       include 'pspecs.inc'
+c
+       integer k,rord,pord,spord
+c
+       if(rord .le. 1 .and. pord .le. 1) then
+         NUMEXPRXN = ttypes(k)
+       elseif(rord .eq. 2 .and. pord.eq.2) then
+c
+c  doubles require a few more reactions, two singles on each side
+c  require the full square including vanillas
+c
+         NUMEXPRXN = (ttypes(k) + 1) * (ttypes(k) + 1) - 1
+       endif
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       integer FUNCTION NUMIP(k,ip,prod,irxn)
+c
+       include 'pspecs.inc'
+c
+       integer i,k,ip,prod,spord,irxn
+c
+c      set to ip and process further if higher order
+c
+       NUMIP = ip
+       if(pord .eq. 2) then
+c
+c  spord is the species order.  If there are two single productss, and a 
+c    double reactant we need to insert coefficients and split the nitrogens, 
+c    otherwise it's a straight-up NUMIP = ip
+c    First loop over the reactants, if we find a double continue
+c    else return ip 
+c
+         do 1000 i=1,ntreac
+           spord = treac(i,2)
+           if(spord .eq. 2) then
+             NUMIP = -1
+           endif
+ 1000    continue
+         if (NUMIP .eq. -1) then
+           NUMIP = ip + 6
+         endif
+       endif
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine EXPANDRXN(k,aname,irxn)
+c
+c      called because we know we need to expand reaction irxn for atom of 
+c        type aname keyed to index k
+C
+       INCLUDE 'pspecs.inc'
+C
+       integer k,i,j,irxn,rord,pord,jrxn,ip,L,tmpip
+     &         ,loutbuf,np,numerxn
+       character*1 aname
+       character*4 tlbl
+       character*16 orname, sname
+       logical newrxn
+c
+c      keep track of the reactant and product orders so we can expand correctly
+c
+       rord = 0
+       pord = 0
+       newrxn = .true.
+c
+c      lets do the reactants first
+c
+       do 1000 i=1,ntreac
+         rord = rord + treac(i,2)
+         write(orname,'a16') name(treac(i,1))
+         call expandspc(k,aname,treac(i,2),orname)
+         do 1100 j=1,numesp
+           esreac(i,j) = esind(j)
+             if(esreac(i,j).eq.0) then
+               write(icrt,1200) i,j,irxn
+             endif
+ 1200  format(2x,'esreac(',i2,',',i2,') for irxn = ',i8)
+ 1100    continue
+ 1000  continue
+c
+c      now do the products
+c
+       do 2000 i=1,ntprod
+         pord = pord + tprod(i,2)
+         write(orname,'a16') name(tprod(i,1))
+         call expandspc(k,aname,tprod(i,2),orname)
+         do 2100 j=1,numesp
+           esprod(i,j) = esind(j)
+ 2100    continue
+ 2000  continue
+c
+       write(typ1,9000) rord,pord
+ 9000  format(24x,'Reaction order is ',i2,' -',i2) 
+c
+c      Now we're all set to actually type the reactions.
+c         
+c         handle the different ordered rxns differently
+c
+c         the addrxn = number of rxns added for tnam(k)
+c              jrxn = rxn number for the current expanded rxn
+c
+c
+c           species or single-single type simplest 
+c
+c test code
+c
+        if(rord .le. 2) then
+            numerxn = NUMEXPRXN(k,rord,pord)
+            do 3000 i=1,numerxn
+c
+               addrxn = addrxn + 1
+               jrxn = nrxn + addrxn
+c error check
+               IF (jrxn.GT.MAXRXN) THEN
+                  j=MAXRXN
+                  WRITE (OUT,*) 'TOO MANY REACTIONS.  MAX =',j
+                  STOP 'TOO MANY REACTIONS'
+               ENDIF
+c
+               if (aname(1:1).eq.'N') then
+                 nntypd = nntypd + 1
+                 typdnrxn(nntypd) = jrxn
+               else if (aname(1:1).eq.'S') then
+                 nstypd = nstypd + 1
+                 typdsrxn(nstypd) = jrxn
+               else if (aname(1:1).eq.'C') then
+                 nctypd = nctypd + 1
+                 typdcrxn(nctypd) = jrxn
+               else if (aname(1:1).eq.'-') then
+                 n_typd = n_typd + 1
+                 typd_rxn(n_typd) = jrxn
+               end if
+c
+               tnrxnlbl = tnrxnlbl + 1               
+               write(tlbl,'i4') tnrxnlbl
+               rxnlbl(jrxn) = tlbl
+c
+c                 set rxn, check to see if irxn is a samek
+c
+               rxtyp(jrxn)=0
+               if(rxtyp(irxn).eq.0) then
+                  lkbuf(jrxn)=lkbuf(irxn)
+               else
+                  lkbuf(jrxn)=irxn
+               endif
+c
+c                 set the number of reactants and products
+c
+               nrtosr(jrxn) = nrtosr(irxn)
+               ip = nprods(irxn+1) - nprods(irxn)
+c
+c now for double and greater reactions, there are additional coefficients to add...
+c   for single NUMIP returns ip
+c
+               ip = NUMIP(k,ip,pord)
+c
+c as weird as it seems, the next line does not have a "+1" on the RHS
+c    because nprods(jrxn) is the index of the first product for the jth rxn
+c    basically a zero indexed array, so no +1
+c
+               nprods(jrxn+1) = nprods(jrxn) + ip
+c
+c error check
+               if(nprods(jrxn+1).gt.maxprd) then
+                 write(icrt,'too many products in expansions')
+                 STOP 'TOO MANY PRODUCTS IN EXPANSIONS'
+               endif
+c
+c                 lets do the reactants initialize first
+c
+               outbuf = ' '
+               jj = 1
+                L = 1
+c
+               do 900 j = 1,3
+                  irtosr(j,jrxn) = 0
+  900          continue
+c
+               do 3100 j = 1,nrtosr(jrxn)
+                 if(rord .le. 1) then
+                   call SingleReact(i,j,irxn,jrxn)
+                 elseif(rord .eq. 2) then
+                   call DoubleReact(i,j,irxn,jrxn)
+                 endif
+c coefficient check
+                 if(irtosr(j,jrxn).le.0) then
+                   call CoefReact(j,jrxn)
+                 else
+                   write(sname, '(a16)') name(irtosr(j,jrxn))
+                 endif
+                 call reactwrite(j,jrxn,sname)
+ 3100  continue
+c
+c                 lets do the products
+c
+c               if(ip.le.0) write(icrt,3170) ip
+ 3170          format('ip = ',i8)
+c
+               tmpip = 0
+c
+c original and expanded don't necessarially have equal ip
+c
+               do 3200 j = 0,ip-1
+                 tmpip = tmpip + 1
+                  if(pord .le. 1) then
+                    call SingleProd(i,j,irxn,jrxn)
+                  elseif(pord .eq. 2) then
+                    call DoubleProd(i,j,irxn,jrxn)
+                  endif
+c coefficent check
+                  if(iprods(nprods(jrxn)+j).le.0) then
+                    if(-iprods(nprods(jrxn)+j) .gt. maxmax) then
+                       write(sname, '(a16)')
+     &                     rxnlbl(-iprods(nprods(jrxn)+j) - maxmax)
+                       jj = jj + 5
+                       outbuf(jj-4:jj) = '#RCON'
+                    else if(-iprods(nprods(jrxn)+j) .lt. ncoc2 .and.
+     &                  -iprods(nprods(jrxn)+j) .gt. maxcov) then
+                       write(sname,'(f16.3)') 
+     &                   coef(-iprods(nprods(jrxn)+j))
+                       jj = jj + 1
+                       outbuf(jj:jj) = '#'
+                    else if((-iprods(nprods(jrxn)+j)) .ne. 0) then
+                       write(sname,'(a16)') 
+     &                   coefnm(-iprods(nprods(jrxn)+j))
+                       jj = jj + 1
+                       outbuf(jj:jj) = '#'
+                    endif
+                  else
+                    write(sname, '(a16)') name(iprods(nprods(jrxn)+j))
+                  endif
+c
+                  call prodwrite(ip,j,jrxn,sname)
+c
+                  if (tmpip.eq.4 .and. j.lt.ip-1) then
+                     jj = jj + 1
+                     outbuf(jj:jj) = '&'
+                     tmpip = 0
+c
+                     write(UNIT3) newrxn,jj,outbuf(1:jj)
+c
+                     if(newrxn) then
+                       write(out, 9200) rxnlbl(jrxn),outbuf
+                       newrxn = .false.
+                     else
+                       write(out,9205) outbuf
+                     endif
+                     outbuf = ' '
+                     jj = 1
+                  endif
+c
+ 3200          continue
+c
+c write out to the .pro file
+c
+                  write(UNIT3) newrxn,jj,outbuf(1:jj)
+c
+              if(newrxn) then
+                WRITE (OUTBUF(67: ),1042) RXNLBL(LKBUF(JRXN))
+ 1042           FORMAT (7X,'SAME K AS ',A4)
+              else
+                WRITE (OUTBUF(65: ),1043) RXNLBL(LKBUF(JRXN))
+ 1043           FORMAT (5X,'SAME K AS ',A4)
+              endif
+c
+              NP=NPRODS(JRXN+1)-NPRODS(JRXN)
+              IF (NP.LE.4) THEN
+                  WRITE (OUTBUF(96: ),1048) (IRTOSR(j,JRXN),j=1,3)
+     &             ,(IPRODS(j),j=NPRODS(JRXN),NPRODS(JRXN+1)-1)
+ 1048             FORMAT (3I4,' =',4I4)
+                  WRITE (OUT,1051) rxnlbl(jrxn),OUTBUF
+ 1051             FORMAT (1x,a4,1x,A128)
+              ELSE
+                  WRITE (OUTBUF(92: ),1048) (IRTOSR(j,JRXN),j=1,3)
+     &             ,(IPRODS(j),j=NPRODS(JRXN),NPRODS(JRXN)+3)
+                  if(newrxn) then
+                     WRITE (OUT,1051) rxnlbl(jrxn),OUTBUF
+                  else
+                     write(out,9205) outbuf
+                  endif
+                  WRITE (OUT,1050) (IPRODS(j),j=NPRODS(JRXN)+4,
+     &              NPRODS(JRXN+1)-1)
+ 1050             FORMAT (115X,4I4)
+c                  newrxn = .true.
+              ENDIF
+c
+c                  if(newrxn) then
+c                    write(out, 9200) rxnlbl(jrxn),outbuf
+c                  else
+c                    write(out,9205) outbuf
+c                  endif
+c
+                  newrxn = .true.
+ 9200             format (1x,a4,1x,a128)
+ 9205             format (10x,a128)
+             
+ 3000       continue
+       endif
+            write(typ1, 9100) numerxn
+c      done so return
+ 9100  format(24x,'Added ',i4,' reactions',/)
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+c
+       subroutine EXPANDSPC(k,aname,natoms,orname)
+C
+       INCLUDE 'pspecs.inc'
+C
+       character*1 aname,tmpchar
+       character*16 orname,newname
+       integer k,i,j,L,tmpj,isp,orgind,natoms
+c
+c      process the original name so that we can add a type suffix
+c
+       call spcnam(orgind,orname,.true.)
+c
+       i=0
+       L=0
+       numesp=0
+c
+       do 2000 while (L.eq.0)
+         i = i + 1
+         tmpchar=orname(i:i)
+         if (tmpchar.eq.'_') then
+c          species has previously been expanded, special processing required
+           write(icrt,3100) orname
+ 3100      format('Species ',a16,'has been previously expanded,'
+     &      ,'  I can not expand again. '
+     &      ,' Call your favoite programmer!')
+         else if (tmpchar.eq.' ')then
+c           found the end of the species name
+           L = i - 1
+c           write(icrt,*) orname(1:L)
+         else if (i.eq.16) then
+            L=i
+C            write(icrt,2100) orname
+ 2100       format('Could find the end of species name',a16)
+         end if
+ 2000  continue
+c
+c      loop over the number of sources and add new seceies as appropriate
+c
+       if(natoms.le.1) then
+       do 1000 i=1,ttypes(k)
+         numesp=numesp+1
+         tmpj = ns
+c         write(tmpchar,*) char(48+i)
+c         write(icrt,*) tmpchar
+         if (aname .ne. '-') then
+           write(newname,*) orname(1:L),'_',aname,char(48+i)
+         else
+           write(newname,*) orname(1:L),'_',char(48+i)
+         end if
+c          write(icrt,'a16') newname
+         call spcnam(isp,newname,.true.)
+         esind(numesp) = isp
+c           write(icrt,'a16') name(isp)
+c   
+c        finally, initilize the mwt,conco,nno,cno,sno if it's  new species
+         if(ns.gt.tmpj) then
+           sptyp(isp) = sptyp(orgind)
+           mwt(isp) = mwt(orgind)
+           conc0(isp) = conc0(orgind)
+           nno(isp) = nno(orgind)
+           cno(isp) = cno(orgind)
+           sno(isp) = sno(orgind)
+            write(typ1, 1005) name(isp),sptyp(isp),mwt(isp),conc0(isp)
+     &                   ,nno(isp),cno(isp),sno(isp)
+ 1005       format(2x,'Added species ',a16,i4,f8.3,f8.3,i4,f8.3,i4)
+         end if
+ 1000  continue
+       else if (natoms.eq.2) then
+       do 1100 i=0,ttypes(k)
+       do 1200 j=max(i,1),ttypes(k)
+c
+         if(i.ne.0 .or. j.ne.0) then
+        
+           numesp=numesp+1
+           tmpj = ns
+c           write(tmpchar,*) char(48+i)
+c           write(icrt,*) tmpchar
+           if (aname .ne. '-') then
+             write(newname,*) orname(1:L),'_',aname,char(48+i)
+     &         ,'_',aname,char(48+j)
+           else
+             write(newname,*) orname(1:L),'_',char(48+i)
+     &         ,aname,char(48+j)
+           end if
+c            write(icrt,'a16') newname
+           call spcnam(isp,newname,.true.)
+           esind(numesp) = isp
+c             write(icrt,'a16') name(isp)
+c   
+c        finally, initilize the mwt,conco,nno,cno,sno if it's  new species
+           if(ns.gt.tmpj) then
+             sptyp(isp) = sptyp(orgind)
+             mwt(isp) = mwt(orgind)
+             conc0(isp) = conc0(orgind)
+             nno(isp) = nno(orgind)
+             cno(isp) = cno(orgind)
+             sno(isp) = sno(orgind)
+            write(typ1, 1005) name(isp),sptyp(isp),mwt(isp),conc0(isp)
+     &                   ,nno(isp),cno(isp),sno(isp)
+           end if
+         end if
+ 1200  continue
+ 1100  continue
+       else
+         write (icrt,3000) orname
+ 3000  format('More then two atoms in species',a16,'nothing done')
+       endif
+c
+c      done, so return
+c
+       return
+       end
+C
+C -----------------------------------------------------------------------------
+C
+       subroutine TRDATOM(ISP,ANAME)
+c
+c       Read in the atom to be typed and check to see if it's okay
+c         make sure that the atom is either N,C,S, or -
+c
+       character*16 aname
+C
+        INCLUDE 'pspecs.inc'
+C
+       call movlft(aname)
+       write(icrt,'a16') aname
+       if(aname(2:2) .eq. ' ') then
+         if(aname(1:1) .eq. 'n' .or. aname(1:1) .eq. 'N') then
+           aname(1:1) = 'N'
+         elseif(aname(1:1) .eq. 'c' .or. aname(1:1) .eq. 'C') then
+           aname(1:1) = 'C'
+         elseif(aname(1:1) .eq. 's' .or. aname(1:1) .eq. 'S') then
+           aname(1:1) = 'S'
+         elseif(aname(1:1) .eq. '*' .or. aname(1:1) .eq. '-') then
+           aname(1:1) = '-'
+         else
+c          none of the above and that's a problem what to do
+           aname(1:1) = '*'
+         endif
+       else
+c        is it written out as "Nitrogren" ?
+         if(aname(1:8).eq.'nitrogen'.or.aname(1:8).eq.'Nitrogen') then
+           aname(1:1) = 'N'
+         elseif(aname(1:6).eq.'carbon'.or.aname(1:6).eq.'Carbon') then
+           aname(1:1) = 'C'
+         elseif(aname(1:6).eq.'sulfur'.or.aname(1:6).eq.'Sulfur') then
+           aname(1:1) = 'S'
+         elseif(aname(1:4).eq.'none'.or.aname(1:4).eq.'None'
+     &                      .or.aname(1:4).eq.'NONE') then
+           aname(1:1) = '-'
+         else
+c          none of the above and that's a problem what to do
+           aname(1:1) = '*'
+         endif
+       endif
+c
+       tatom(ISP)=aname(1:1)
+c
+c        finished so return
+c
+       return
+       end
+c
+C -----------------------------------------------------------------------------
+        SUBROUTINE TSPCNAM(ISP,SPNAME,RX)
+C
+C       DETERMINE SPECIES NO. FOR NAME IN TSPNAME.  RETURNS SPECIES NO. IN
+C       ISP.  ADDS SPECIES TO NAME to type ARRAY IF NEW, AND DO OTHER UPDATING.
+C
+C       CALLED FROM:  RDRXN, TYPEO
+C
+C
+C       ARGUMENTS
+C
+        LOGICAL   RX
+        integer i
+        CHARACTER*16 SPNAME
+C
+C       SPECIFICATIONS FOR PREPARATION PROGRAM VARIABLES, PARAMETERS, AND
+C       ARRAYS
+C
+        INCLUDE 'pspecs.inc'
+C
+C
+       IF (NST.EQ.0) GOTO 1125
+       DO 1122 ISP=1,NST
+       IF (TNAME(ISP).NE.SPNAME) GOTO 1122
+D      WRITE (OUT,*) 'SPCNAM: (OLD) ',TNAME(ISP),'  SPC NO.=',ISP
+       IF (.NOT.RX) THEN
+C           if there needs to be any processing of an already specified typeo species
+C		put it here.
+       ENDIF
+       RETURN
+ 1122  CONTINUE
+C  -     NAME NOT FOUND - NEW SPECIES ADDED TO LIST
+ 1125  NST=NST+1
+       IF (NST.GT.MAXNS) THEN
+                I=MAXNS
+                IF (RX) WRITE (OUT,1127) OUTBUF
+ 1127           FORMAT (' ',A80)
+                WRITE (OUT,*) 'TOO MANY SPECIES.  MAX =',I
+                STOP 'TOO MANY SPECIES'
+       ENDIF
+       TNAME(NST)=SPNAME
+       IF (IND.GT.0) THEN
+c        write in the default atom and number of sources
+       ELSE
+                WRITE (OUT,*) 'PGM ER. IND<0 AT TSPCNAM'
+       ENDIF
+       ISP=NST
+       RETURN
+       END
+C
+C
+
+
+
+C -----------------------------------------------------------------------------
+        SUBROUTINE TPNTRXN
+C
+C
+        INCLUDE 'pspecs.inc'
+C
+       INTEGER i, j, k, l
+       CHARACTER*8 ispace
+       CHARACTER RKBUF*80,TMPRXN*160
+C
+       write (ispace, '(a8)') '        '
+C
+C      OPEN OUTPUT FILE
+C
+       IOB160=' '
+       CALL FILNAM (LENAM,IOB160,LOGUIC,MODFIL,'.pro2 ')
+       OPEN (UNIT=OUT2,NAME=IOB160,status='UNKNOWN')
+C
+C      WRITE HEADER ON OUTPUT FILE
+C
+       WRITE (OUT2,121) TITLE(1:16),TITLE(17:80)
+  121  FORMAT ('1',130('*')//1X,29X,'S A P R C   M O D E L   P R E P',
+     &  ' A R A T I O N   P R O G R A M'//1X,52X,A16//1X,28X,A64/
+     &  /1X,130('*')/'0PARAMETERS SPECIFIED:'/' ')
+C
+C
+C       WRITE NUMBERS OF REACTIONS, SPECIES, COEFS, ETC.  ABORT IF
+C       BOUNDS EXCEEDED
+C
+        WRITE (OUT2,2001) NRXN,NS,NCOEFV,NCOC2-NCOC1+1,NPHOTK
+ 2001   FORMAT ('0',I4,' REACTIONS,',I5,' SPECIES,',I5,' VARIABLE',
+     &   ' COEFFICIENTS,',I4,' CONSTANT COEFFICIENTS, AND',I4,
+     &   ' PHOTOLYSIS FILES.'/)
+C
+      write(out2,3006)
+ 3006 format (2x,'typed species',8x
+     &      ,'atom tracked',8x,'number sources')
+      do 3000 i=1,nst
+        write (out2, 3005) tname(i),tatom(i),ttypes(i)
+ 3000 continue
+c
+ 3005 format (8x,a16,5x,a1,10x,i8)
+c
+c debugging write
+c
+       write(icrt,4400) nrxn
+ 4400  format('Number of reactions before printing = ',i8)
+ 
+       DO 1000 i=1,NRXN
+         L=0
+c
+c check to see how many reactants for the current reaction
+c
+c         do 1006 j=1,3
+c           if (irtosr(j,i) .gt. 0) L = j
+c 1006    continue
+          L = nrtosr(i)
+c
+c determine if there are more then 4 products
+c
+       if ((NPRODS(i+1)-1-NPRODS(i)).le.4) then
+c
+c  debugging write
+c
+                do 1009 j=1,nrtosr(i)
+                       if(irtosr(j,i).le.0) then
+                         write(icrt,'a18') "airtosr(j,jrxn)<=0"
+                       endif
+ 1009           continue
+c
+c           rection prints out on one line
+c still need to be able to write out the coef and the coefnm
+c
+         if (L.lt.3) then
+           write (out2, 1007) rxnlbl(i),rxtyp(i),(ispace,k=1,3-L),
+     &                        (name(abs(irtosr(k,i))),k=1,L) 
+     &       ,(name(abs(IPRODS(k))),k=NPRODS(i),NPRODS(i+1)-1)
+         else
+           write (out2, 1007) rxnlbl(i),rxtyp(i),
+     &                        (name(abs(irtosr(k,i))),k=1,L)
+     &       ,(name(abs(IPRODS(k))),k=NPRODS(i),NPRODS(i+1)-1)
+         endif
+       else
+c
+c        there are more then 4 products, so print on several lines
+c
+       endif
+C
+ 1000  CONTINUE
+ 1007  FORMAT (2x,a4,2x,i4,4x,3a8,' = ',4a8)
+ 1008  FORMAT (44x,4a8)
+C
+       CLOSE(OUT2)
+C
+       return
+       end
+C
+C end of typeosubs.for

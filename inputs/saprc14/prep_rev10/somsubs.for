@@ -1,0 +1,700 @@
+C	SOMSUBS.FOR
+C
+C
+C       Subroutines included to support the SOM.for procedures
+
+       subroutine SOMRXN(k,irxn,i)
+       include 'pspecs.inc'
+       character suffix*30, name2*16,sname*16
+       real omax,pfrag
+       real kbase
+c
+c      check to see if this rxn has already been expanded for som spec k
+c
+       write(suffix,'(i5)')k
+       call movlft2(suffix)
+       jj=nblank(suffix)
+       if(index(som_rxnlbl(irxn),suffix(:jj)).ne.0)return
+       i1 = max(nblank(som_rxnlbl(irxn)),0)
+       if(i1.gt.0)then
+        write(som_rxnlbl(irxn),'(a)')som_rxnlbl(irxn)(:i1)//"."//
+     +                               suffix(:jj)
+       else
+        write(som_rxnlbl(irxn),'(a)')suffix(:jj)
+       endif
+       call movlft2(som_rxnlbl(irxn))
+       jj=nblank(som_rxnlbl(irxn))
+       print*,'som_rxnlbl: **'//som_rxnlbl(irxn)(:jj)//'**'
+c
+c      look at the reactants in the SOM reaction.  change some of the
+c      input parameters if necessary.
+c
+c carbon species
+       jhc=0
+       cmax=0.0
+       do j = 1,nrtosr(irxn)
+        jj=irtosr(j,irxn)
+        if(jj.gt.0)then
+c         print*,'som reactant:',name(jj),cno(jj),ono(jj)
+         if(cno(jj).gt.cmax)jhc=jj
+        endif 
+       enddo
+       if(jhc.eq.0)then
+        print*,'please set carbon number for reactants in ',rxnlbl(irxn)
+        stop 'somrxn marker1'
+       endif
+c oxidant species
+       jox=0
+       omax=0.0
+       icount=0
+       do j = 1,nrtosr(irxn)
+        jj=irtosr(j,irxn)
+        if(jj.gt.0)then
+         if(ono(jj).gt.omax.and.jj.ne.jhc)jox=jj
+         icount=icount+1
+        endif 
+       enddo
+       if(jox.eq.0 .and. icount.gt.1)then
+        print*,'please set oxygen number for reactants in ',rxnlbl(irxn)
+        stop 'somrxn marker2'
+       endif
+       print*,'som base hydrocarbon:',name(jhc)
+       if(jox.gt.0)print*,'som oxidant:',name(jox),jox
+c reset the upper bound of the carbon dimension of the SOM grid
+       somgrid(2,k) = max(somgrid(2,k),int(cno(jhc)))
+       if(somgrid(1,k).lt.1 .or. somgrid(2,k).gt.maxsomc)then
+        print*,'bad som carbon grid specifications for :',somname(k)
+        print*,'species:',name(jhc),' has no carbons :',cno(jhc)
+        print*,'min, max:',1,maxsomc
+        print*,'reset maxsomc in pspecs.inc'
+        stop 'somsubs.for marker3'
+       endif
+c
+c      check that all the members of the SOM grid have been created
+c
+       call chksomgrid(k,irxn,i)
+c
+c limits of the fragmentation and functionalization patterns on the grid
+c
+       if(nint(ono(jhc)).gt.0)then
+        ifragomax=min(somgrid(4,k),nint(ono(jhc)+1))
+c        ifragomin=max(1,nint(ono(jhc))-2)
+        ifragomin=1
+        ifragcmax=max(somgrid(1,k),nint(cno(jhc)-1))
+c        ifragcmin=max(somgrid(1,k),nint(cno(jhc)-6))
+        ifragcmin=somgrid(1,k)
+c        ifragcmin=1.0
+        nfrag = (ifragomax-ifragomin+1)*(ifragcmax-ifragcmin+1)
+        do ii=ifragcmin,ifragcmax
+        do jj=ifragomin,ifragomax
+         if(jj.gt.2*ii)nfrag=nfrag-1
+        enddo
+        enddo
+c        print*,'ifrago:',ifragomin,ifragomax
+c        print*,'ifragc:',ifragcmin,ifragcmax
+       else
+        nfrag = 0
+       endif
+       ifuncomax=min(somgrid(4,k),nint(ono(jhc)+4),2*int(cno(jhc)))
+       ifuncomin=nint(ono(jhc)+1)
+       nfunc = (ifuncomax-ifuncomin+1)
+c
+c add the variable coeficients that will be needed in the reactions
+c
+cc fragmentation probability
+c       write(iobf16,'("F"i2.2,".",i2.2,".",i1)')k,nint(cno(jhc)),
+c     +             nint(ono(jhc))
+c       call cofnam(ii,.false.)
+c       coef(-ii) = (ono(jhc)/cno(jhc))**cfrag(k)
+cc functionalization probability = compliment of fragmentation 
+c       write(iobf16,'("C"i2.2,".",i2.2,".",i1)')k,nint(cno(jhc)),
+c     +             nint(ono(jhc))
+c       call cofnam(ii,.false.)
+c       coef(-ii) = 1.0 - (ono(jhc)/cno(jhc))**cfrag(k)
+cc distribution of fragmented species
+c       do icno=ifragcmin,ifragcmax
+c       do iono=ifragomin,ifragomax
+c        write(iobf16,'("G",i2.2,".",i2.2,".",i1)')k,icno,iono
+c        call cofnam(ii,.false.)
+c        coef(-ii)=1.0/float(nfrag)
+c       enddo
+c       enddo
+cc distribution of functionalized species
+c       do iono=ifuncomin,ifuncomax
+c        write(iobf16,'("D",i2.2,".",i1)')k,iono
+c        call cofnam(ii,.false.)
+c        coef(-ii)=pfunc(iono,k)
+c       enddo
+c
+c      modify the base rxn so that it references the correct species
+c
+       print*,'replacing som species in rxn:',irxn,rxnlbl(irxn),
+     +           name(iprods(i))
+c      print*,'products before modification'
+c       do ii=nprods(irxn),nprods(irxn+1)-1
+c        if(iprods(ii).gt.0)then
+c         print*,ii,iprods(ii),name(iprods(ii))
+c        elseif(-iprods(ii).gt.maxmax)then
+c         print*,ii,iprods(ii),rxnlbl(-iprods(ii)-maxmax)
+c        elseif(-iprods(ii).ge.maxcov)then
+c         print*,ii,iprods(ii),coef(-iprods(ii))
+c        elseif(-iprods(ii).ne.0)then
+c         print*,ii,iprods(ii),coefnm(-iprods(ii))
+c        endif
+c       enddo
+c count the new products and their coefficients
+       icoef_count=0
+       do ii=i-1,nprods(irxn),-1
+        if(iprods(ii).gt.0)goto 10
+        icoef_count=icoef_count+1 ! allow for another coef
+       enddo
+ 10    continue
+       imult=3+icoef_count ! allow for prod and 2 new coefs + old coefs 
+       nadd = imult*(nfunc + nfrag) 
+       nadd = nadd - 1 - icoef_count ! use the existing prod and coef spots
+c make room for the new products and their coefficients
+       do ir=nrxn,irxn+1,-1
+        do ip=nprods(ir+1)-1,nprods(ir),-1
+         ip2=ip+nadd
+         iprods(ip2)=iprods(ip)
+        enddo ! ip=nprods(ir+1),nprods(ir),-1
+        nprods(ir+1)=nprods(ir+1)+nadd
+       enddo ! nprods(ir+1)-1,nprods(ir),-1
+       do ip = nprods(irxn+1)-1,i+1,-1
+        ip2=ip+nadd
+        iprods(ip2)=iprods(ip)
+       enddo
+       nprods(irxn+1)=nprods(irxn+1)+nadd
+
+c********************************************************************
+c add the new new functionalization products and their coefficients
+c********************************************************************
+       iono=ifuncomin-1
+       ibase=i-icoef_count
+c       print*,'func ibase,icoef_count:',ibase,icoef_count
+       totfunc=0.0
+       do ip=ibase,ibase+nfunc*imult-1,imult 
+c add the leading coefficients
+        do ii=1,icoef_count
+         iprods(ip+ii-1)=iprods(i-icoef_count+ii-1)
+        enddo
+c functionalization coefficients
+        iono=iono+1
+c        write(iobf16,'("C"i2.2,".",i2.2,".",i1)')k,nint(cno(jhc)),
+c     +             nint(ono(jhc)) ! for variable coef
+        write(iobf16,'(F16.8)')1.0-(ono(jhc)/cno(jhc))**cfrag(k) ! for fixed
+        call cofnam(ii,.false.)
+        iprods(ip+icoef_count)=ii
+c        write(iobf16,'("D",i2.2,".",i1)')k,iono ! for variable coef
+        rfunc=pfunc(iono-ifuncomin+1,k)
+        if(iono-ifuncomin+1.eq.nfunc)rfunc=1.0-totfunc
+        totfunc=totfunc+rfunc
+        write(iobf16,'(F16.8)')rfunc     ! for fixed coef
+        call cofnam(ii,.false.)
+        iprods(ip+icoef_count+1)=ii
+c        print*,'functionalization coef:',ii
+        if(-ii.le.maxcov)print*,'coef name:',coefnm(-ii)
+c functionalization products
+        write(suffix,'("_",i2.2,"_",i2.2)')nint(cno(jhc)),iono
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         print*, 'could not find som spec:'//somname(k)//suffix
+         stop 'somsubs marker4'
+        endif
+        iprods(ip+icoef_count+2)=ii
+       enddo ! ip=ibase,ibase+(nfunc)*imult-1,imult 
+
+c*******************************************************************
+c add the new new fragmentation products and their coefficients
+c*******************************************************************
+       if(nfrag.gt.0)then
+       icno=ifragcmin-1
+       iono=ifragomin
+       ibase=i-icoef_count+nfunc*imult
+c       print*,'frag ibase,icoef_count,imult:',ibase,icoef_count,imult
+       do ip=ibase,ibase+nfrag*imult-1,imult
+c add the leading coefficients
+        do ii=1,icoef_count
+         iprods(ip+ii-1)=iprods(i-icoef_count+ii-1)
+        enddo
+c fragmentation coefficients
+ 100    icno=icno+1
+        if(icno.gt.ifragcmax)then
+         iono=iono+1
+         icno=ifragcmin
+        endif
+        if(iono.gt.2*icno)then ! skip disallowed products
+         goto 100
+        endif
+
+c        print*,'ii,icno,iono:',ii,icno,iono
+c        write(iobf16,'("F"i2.2,".",i2.2,".",i1)')k,nint(cno(jhc)),
+c     +             nint(ono(jhc)) ! for variable coef
+        write(iobf16,'(F16.8)')(ono(jhc)/cno(jhc))**cfrag(k) ! for fixed
+        call cofnam(ii,.false.)
+        iprods(ip+icoef_count)=ii
+c        write(iobf16,'("G",i2.2,".",i1)')k,iono ! for variable coef
+        write(iobf16,'(F16.8)')1.0/float(nfrag)  ! for fixed coef
+        call cofnam(ii,.false.)
+        iprods(ip+icoef_count+1)=ii
+c        print*,'fragmentation coef:',ii
+        if(-ii.le.maxcov)print*,'coef name:',coefnm(-ii)
+c fragmentation products
+        write(suffix,'("_",i2.2,"_",i2.2)')icno,iono
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         print*, 'could not find som spec:'//somname(k)//suffix
+         stop 'somsubs marker5'
+        endif
+        iprods(ip+icoef_count+2)=ii
+       enddo ! ip=ibase,ibase+(nfrag)*imult-1,imult 
+       endif ! nfrag.gt.0
+c
+c write the reaction to the output buffer as a diagnostic
+c
+       call write_rxn(irxn,.true.,.false.)
+c
+c mark this reaction as complete in the som grid
+c
+       somcheck(nint(cno(jhc)),nint(ono(jhc)),k)=1
+c
+c check for other reactions in this som grid and add as needed
+c
+       do 20 nc = somgrid(1,k),somgrid(2,k)
+       do 20 no = max(1,somgrid(3,k)),min(2*nc,somgrid(4,k))
+       if(somcheck(nc,no,k).eq.0)then
+c think about fragmentation and functionalization probabilities
+        xfrag = min(1.0,(float(no)/float(nc))**cfrag(k))
+        xfunc = 1.0-xfrag
+c limits of the fragmentation patterns on the grid
+        if(xfrag.gt.0 .and. no.gt.0)then
+         ifragomax=min(somgrid(4,k),no+1)
+c         ifragomin=max(1,no-2)
+         ifragomin=1
+         ifragcmax=nc-1
+c         ifragcmin=max(somgrid(1,k),nc-6)
+         ifragcmin=somgrid(1,k)
+c         ifragcmin=1
+         nfrag = (ifragomax-ifragomin+1)*(ifragcmax-ifragcmin+1)
+c mjk adjusts this for compact som grid
+c         nfrag_fd = nfrag
+         nfrag_fd = (ifragomax-ifragomin+1)*(ifragcmax-1+1)
+c mjk adjusts this for compact som grid
+         do jj=ifragomin,ifragomax
+         do ii=ifragcmin,ifragcmax
+            if(jj.gt.2*ii)nfrag=nfrag-1
+         enddo ! ii=ifragcmin,ifragcmax
+c mjk adjusts this for compact som grid
+         do ii=1,ifragcmax
+            spexist = real(no-jj+1)/real(nc-ii)
+            if((jj.gt.2*ii).or.(spexist.ge.2.0))nfrag_fd=nfrag_fd-1
+         enddo ! ii=1,ifragcmax
+c mjk adjusts this for compact som grid
+         enddo ! jj=ifragomin,ifragomax
+c         print*,'ifrago:',no,ifragomin,ifragomax
+c         print*,'ifragc:',nc,ifragcmin,ifragcmax
+         if(ifragcmax.lt.ifragcmin)nfrag=0
+        else
+         nfrag = 0
+        endif
+c limits of the functionalization patterns on the grid
+        if(xfunc.gt.0)then
+         ifuncomax=min(somgrid(4,k),no+4,2*nc)
+         ifuncomin=no+1
+         nfunc = (ifuncomax-ifuncomin+1)
+c         print*,'ifunco:',no,ifuncomin,ifuncomax
+        else
+         nfunc = 0
+        endif
+        if(nfunc+nfrag.le.0)goto 20
+        if(nfunc.eq.0)xfrag=1.0
+c mjk disables this for compact som grid
+c        if(nfrag.eq.0)xfunc=1.0
+c mjk disables this for compact som grid
+c up the rxn count
+        nrxn=nrxn+1
+        if(nrxn.gt.maxrxn)then
+         write(out,*)'TOO MAN REACTIONS.  MAX=',maxrxn
+         stop 'too many reactions in typrxn. increase maxrxn'
+        endif
+c
+c set the new reaction label as a counter followed by the som grid index
+c note that the primary rxnlbl has the added reaction count followed by
+c the som grid index.  the secondary som_rxnlbl only contains the som grid 
+c index so that we can quickly determine if the reaction has been expanded
+c for this som species.
+c
+c primary rxn label for new rxn
+        write(rxnlbl(nrxn),'(a)')'S'
+        jj=nblank(rxnlbl(nrxn))+1
+        som_nrxnlbl=som_nrxnlbl+1
+        write(suffix,'(i5)')som_nrxnlbl
+        call movlft2(suffix)
+        ii=nblank(suffix)
+        write(rxnlbl(nrxn)(jj:),'((a))')suffix(:ii)//'.'
+        jj=nblank(rxnlbl(nrxn))+1
+        write(suffix,'(i5)')k
+        call movlft2(suffix)
+        ii=nblank(suffix)
+        write(rxnlbl(nrxn)(jj:),'((a))')suffix(:ii)
+c        print*,'new rxn lbl:**'//rxnlbl(nrxn)//'**'
+c secondary rxn label for new rxn
+        i1 = max(nblank(som_rxnlbl(nrxn)),0)
+        if(i1.gt.0)then
+         if(index(som_rxnlbl(nrxn)(:i1),"."//suffix(:jj)).ne.0)goto 20
+         write(som_rxnlbl(nrxn),'(a)')som_rxnlbl(nrxn)(:i1)//"."//
+     +                                suffix(:jj)
+        else
+         write(som_rxnlbl(nrxn),'(a)')suffix(:jj)
+        endif
+        call movlft2(som_rxnlbl(nrxn))
+c        print*,'new srxn lbl:**'//som_rxnlbl(nrxn)//'**'
+c
+c set the new reaction type 
+c
+        rxtyp(nrxn) = 3 ! constant reaction rate
+        if(nrxn.gt.1)then
+         if(rxtyp(nrxn-1).eq.3)then
+          LKBUF(NRXN)=LKBUF(NRXN-1)+1
+         elseif(rxtyp(nrxn-1).eq.4)then
+          LKBUF(NRXN)=LKBUF(NRXN-1)+4
+         elseif(rxtyp(nrxn-1).eq.5)then
+          LKBUF(NRXN)=LKBUF(NRXN-1)+8
+         elseif(rxtyp(nrxn-1).eq.7)then
+          LKBUF(NRXN)=LKBUF(NRXN-1)+1
+         elseif(rxtyp(nrxn-1).eq.9)then
+          LKBUF(NRXN)=LKBUF(NRXN-1)+6
+         elseif(rxtyp(nrxn-1).eq.10)then
+          LKBUF(NRXN)=LKBUF(NRXN-1)+9
+         else
+           print*,'reaction type not known:',rxtyp(nrxn-1)
+           stop 'somsubs marker rxtyp'
+         endif ! rxtyp(nrxn-1).eq.3,4,5,7,9,10
+        else
+         LKBUF(NRXN)=1
+        endif
+        lockbf=lockbf+1
+c set the rate constant 
+c ref: Cappa and Wilson (2012), Multi-generation gas-phase oxidation, 
+c equilibrium partitioning, and the formation and evolution of secondary
+c organic aerosol, ACP 12(20) 9505-9528. Supplemental Info.
+c        if(no.gt.nc)then
+c         kpbuf(lkbuf(nrxn))=3.3274395e-12*no*(1.0-no/2.0/nc)
+c        elseif(no.eq.nc)then
+c         kpbuf(lkbuf(nrxn))=6.40724e-12+3.3274395e-12*no
+c        elseif(no.eq.nc-1)then
+c         kpbuf(lkbuf(nrxn))=3.573086667e-12+3.3274395e-12*no
+c        elseif(no.eq.0 .and. nc.eq.2)then
+c         kpbuf(lkbuf(nrxn))=3.3456e-13
+c        else
+c         a=no/(max(1.0,nc-2.0))
+c         b=1.0
+c         if(no.gt.(nc-2.0)/2.0)b=1.0-abs((nc-2.0)/2.0-no)/(nc-2.0)/0.5
+c         kpbuf(lkbuf(nrxn))=2.72e-13*((1.0-a)*1.23+a*2.325)
+c     +               +(nc-2.0-no)*9.34e-13
+c     +               *((1.0-a)*1.5129+a*(0.9225+b*7.722)/(2.0*b+1.0))
+c        endif
+c        print*,'k1:',nrxn,lkbuf(nrxn),kpbuf(lkbuf(nrxn))
+c     *** shj ***
+c     new method to define kOH as a function of C# and O#
+        a1 = -15.103
+        a2 = -3.9481
+        a3 = -0.79796
+        if (no.eq.0) then ! no oxygens
+           kpbuf(lkbuf(nrxn)) = 10**(a1 + a2 * real(nc)**a3)
+        else
+           kbase = 10.0**(a1 + a2 * real(nc)**a3)
+           if (nc.le.15) then
+              sigma = 0.0214 * real(nc) + 0.5238
+              b2 = 0.0314 * real(nc) + 0.9871
+           elseif (nc.gt.15) then
+              sigma = -0.115 * real(nc) + 2.695
+              b2 = 0.25 * real(nc) - 2.183
+           end if
+           b1 = -0.2583 * real(nc) + 5.8944
+           
+           kpbuf(lkbuf(nrxn)) = kbase * ( 1.0 +
+     &          b1/sigma/(2.0*3.14159)**0.5 *
+     &          exp(-1.0 * (log(real(no))+0.01-log(b2))**2.0 / 2.0
+     &          / sigma**2.0))
+        end if
+        tdcoeff = 298.0**2 * exp(-1.0 * 1000 / 8.314 / 298)
+        kpbuf(lkbuf(nrxn)) = kpbuf(lkbuf(nrxn)) * tdcoeff
+
+        if ((somname(k).eq.'ISPSOMG').and.(nc.eq.5).and.(no.le.4))
+     &       then
+           kpbuf(lkbuf(nrxn)) = 10.0e-11 ! adopted from response to comment from Hodzic et al., ACPD, 2016
+                                         ! C5O1 to C5O4 get the same reactivity as the isoprene reactivity with OH at STP
+c              print*, somname(k), nc, no
+c              pause
+        end if
+
+c        print*, a1, a2, a3
+c        print*, kbase, b1, b2, sigma, tdcoeff
+c        print*, 'kOH', nc, no, kpbuf(lkbuf(nrxn))
+c        pause
+c     *** shj ***
+c convert to ppm min units
+        if(ppm)then
+         FAC=60*(7.3395E+15/TREF)
+         kpbuf(lkbuf(nrxn))=kpbuf(lkbuf(nrxn))*fac
+        endif
+c        print*,'k2:',nrxn,lkbuf(nrxn),kpbuf(lkbuf(nrxn))
+c
+c set the reactants
+c
+        jox2=jox
+        if(jox2.le.0)then
+         write(name2,'(a)') 'OH'
+         call spcnam2(jox2,name2,.true.)
+         if(jox2.le.0)then
+          write(name2,'(a)') 'HO'
+          call spcnam2(jox2,name2,.true.)
+          if(jox2.le.0)then
+           write(name2,'(a)') 'HO.'
+           call spcnam2(jox2,name2,.true.)
+          endif
+         endif
+         if(jox2.gt.0)print*,'identified som oxidant:',name(jox2)
+        endif
+        if(jox2.le.0)then
+         print*,'could not identify oxidant in rxn:',rxnlbl(irxn)
+         print*,'failed to find OH, HO, or HO. in mechanism:'
+         do ii=1,ns
+          print*,ii,name(ii)
+         enddo
+         print*,'failed to generate som grid reactions'
+         stop 'somsubs marker6'
+        endif
+        nrtosr(nrxn) = 2
+        write(suffix,'("_",i2.2,"_",i2.2)')nc,no
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         print*, 'could not find som spec:'//somname(k)//suffix
+         stop 'somsubs marker7'
+        endif
+        irtosr(1,nrxn) = ii
+        irtosr(2,nrxn) = jox2
+
+c
+c set the products
+c
+        imult=3 ! allow for prod and 2 new coefs
+        nadd = imult*(nfunc + nfrag) 
+c        print*,'nadd:',nadd
+        nprods(nrxn+1)=nprods(nrxn)+nadd
+c        print*,'nprods:',imult,nfunc,nfrag,nprods(nrxn),nprods(nrxn+1)
+c********************************************************************
+c add the new new functionalization products and their coefficients
+c********************************************************************
+       iono=ifuncomin-1
+       ibase=nprods(nrxn)
+c       print*,'func ibase:',ibase
+       totfunc=0.0
+       ip=ibase
+       do while(ip.lt.ibase+nfunc*imult-1)
+c functionalization coefficients
+        iono=iono+1
+c        write(iobf16,'("C"i2.2,".",i2.2,".",i1)')k,nc,no! for variable coef
+        write(iobf16,'(F16.8)')xfunc ! for fixed
+        call cofnam(ii,.false.)
+        iprods(ip)=ii
+c        write(iobf16,'("D",i2.2,".",i1)')k,iono ! for variable coef
+        rfunc=pfunc(iono-ifuncomin+1,k)
+        if(iono-ifuncomin+1.eq.nfunc)rfunc=1.0-totfunc
+        totfunc=totfunc+rfunc
+        write(iobf16,'(F16.8)')rfunc     ! for fixed coef
+        call cofnam(ii,.false.)
+        iprods(ip+1)=ii
+c        print*,'functionalization coef:',ii
+        if(-ii.le.maxcov)print*,'coef name:',coefnm(-ii)
+c functionalization products
+        write(suffix,'("_",i2.2,"_",i2.2)')nc,iono
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         print*, 'could not find som spec:'//somname(k)//suffix
+         stop 'somsubs marker8'
+        endif
+        iprods(ip+2)=ii
+c        print*,name(ii)
+        ip=ip+imult
+       enddo ! ip=ibase,ibase+(nfunc)*imult-1,imult 
+
+c*******************************************************************
+c add the new new fragmentation products and their coefficients
+c*******************************************************************
+       icno=ifragcmin-1
+       iono=ifragomin
+       ibase=nprods(nrxn)+nfunc*imult
+c       print*,'frag ibase,icoef_count:',ibase
+       ip = ibase
+       do 30 while( ip.lt.ibase+nfrag*imult-1)
+c fragmentation coefficients
+        icno=icno+1
+        if(icno.gt.ifragcmax)then
+         iono=iono+1
+         icno=ifragcmin
+        endif
+c        print*,'ii,icno,iono:',ii,icno,iono
+        if (iono.gt.2*icno)goto 30
+c        print*,'active'
+c        write(iobf16,'("F"i2.2,".",i2.2,".",i1)')k,nc,no ! for variable coef
+        write(iobf16,'(F16.8)') xfrag ! for fixed
+        call cofnam(ii,.false.)
+        iprods(ip)=ii
+c        write(iobf16,'("G",i2.2,".",i1)')k,iono ! for variable coef
+        spexist = real(no-iono+1)/real(nc-icno)
+        if (spexist.ge.2.0) then
+           write(iobf16,'(F16.8)')0.0 ! for fixed coef
+        else
+           write(iobf16,'(F16.8)')1.0/float(nfrag_fd)*2.0 ! for fixed coef
+        end if
+        call cofnam(ii,.false.)
+        iprods(ip+1)=ii
+c        print*,'fragmentation coef:',ii
+        if(-ii.le.maxcov)print*,'coef name:',coefnm(-ii)
+c fragmentation products
+        write(suffix,'("_",i2.2,"_",i2.2)')icno,iono
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         print*, 'could not find som spec:'//somname(k)//suffix
+         stop 'somsubs marker9'
+        endif
+        iprods(ip+2)=ii
+c        print*,name(ii)
+        ip=ip+imult
+ 30    continue ! ip=ibase,ibase+(nfrag)*imult-1,imult 
+c
+c write the reaction to the output buffer as a diagnostic
+c
+       call write_rxn(nrxn,.true.,.false.)
+c
+c mark this reaction as complete in the som grid
+c
+        somcheck(nc,no,k)=1
+
+       endif !(somcheck(nc,no,k).eq.0)then     
+ 20    continue
+
+       return
+       end
+
+
+        SUBROUTINE SOMSPCNAM(ISP,SPNAME,RX)
+C
+C       DETERMINE SPECIES NO. FOR NAME IN SOMSPNAME.  RETURNS SPECIES NO. IN
+C       ISP.  ADDS SPECIES TO NAME to ARRAY IF NEW, AND DO OTHER UPDATING.
+C
+C       CALLED FROM:  RDRXN, SOM
+C
+C
+C       ARGUMENTS
+C
+        LOGICAL   RX
+        integer i
+        CHARACTER*16 SPNAME
+C
+C       SPECIFICATIONS FOR PREPARATION PROGRAM VARIABLES, PARAMETERS, AND
+C       ARRAYS
+C
+        INCLUDE 'pspecs.inc'
+C
+C
+       DO 1122 ISP=1,NSOM
+        IF (SOMNAME(ISP).EQ.SPNAME)THEN
+D        WRITE (OUT,*) 'SPCNAM: (OLD) ',SOMNAME(ISP),'  SPC NO.=',ISP
+         IF (.NOT.RX) THEN
+C if there needs to be any processing of an already specified SOM species
+C put it here.
+         ENDIF
+         RETURN
+        ENDIF
+ 1122  CONTINUE
+C  -     NAME NOT FOUND - NEW SPECIES ADDED TO LIST
+ 1125  NSOM=NSOM+1
+       IF (NSOM.GT.MAXNS) THEN
+                I=MAXNS
+                IF (RX) WRITE (OUT,1127) OUTBUF
+ 1127           FORMAT (' ',A80)
+                WRITE (OUT,*) 'TOO MANY SPECIES.  MAX =',I
+                STOP 'TOO MANY SPECIES'
+       ENDIF
+       ISP=NSOM
+       SOMNAME(NSOM)=SPNAME
+       IF (IND.GT.0) THEN
+c        write in the default SOM properties
+       ELSE
+                WRITE (OUT,*) 'PGM ER. IND<0 AT SOMSPCNAM'
+       ENDIF
+       RETURN
+       END
+
+
+
+      subroutine chksomgrid(k,irxn,i)
+c********************************************************************
+c written by: Mike Kleeman (June 2013)
+c             UC Davis CEE
+c
+c The purpose of this subroutine is to check and see if the SOM grid
+c has been created for species k.
+c
+c The suffix added to "basename" will be _C_O... where C is
+c the carbon number and O is the oxygen number. 
+c
+c Note that the include file pspecs.inc has common blocks that pass 
+c most of the i/o.
+c
+c Inputs:
+c  k     - base SOM species
+c  irxn  - rxn where the SOM species was detected
+c  i     - SOM product in the target rxn
+c
+c Outputs:
+c
+c********************************************************************
+
+      include 'pspecs.inc'
+      character suffix*30, name2*16
+
+c--check to see if the SOM grid has been added to the active list--
+      do 10 nc = somgrid(1,k),somgrid(2,k)
+      do 10 no = somgrid(3,k),min(2*nc,somgrid(4,k))
+        write(suffix,'("_",i2.2,"_",i2.2)')nc,no
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         if(ns+1.gt.maxns) stop 'chksomgrid marker3: exceeded ns'
+         write(name2,'(a)')somname(k)(:nblank(somname(k)))//
+     +                     suffix(:nblank(suffix))
+c         print*,'adding species 1**'//name2//'**'
+         call spcnam(isp,name2,.true.)
+         ii=iprods(i)
+         sptyp(isp) = sptyp(ii)
+         conc0(isp) = conc0(ii)
+         nno(isp) = nno(ii)
+         nsno(isp) = nsno(ii)
+         cno(isp) = nc
+         csno(isp) = nc
+         ono(isp) = no
+         osno(isp) = no
+         sno(isp) = sno(ii)
+         ssno(isp) = ssno(ii)
+         xno(isp) = xno(ii)
+         xsno(isp) = xsno(ii)
+c         mwt(isp) = mwt(ii) + (cno(isp)-cno(ii))*12.0 
+c     +                      + (ono(isp)-ono(ii))*16.0
+         mwt(isp) = (cno(isp)-cno(ii))*12.0 
+     +        + (ono(isp)-ono(ii))*16.0
+     +        + (cno(isp)-cno(ii))*2.0 + 2.0
+     +        - (ono(isp)-ono(ii))
+         mwt(isp) = max(mwt(isp),12.0)
+         write(typ1, 1005) name(isp),sptyp(isp),mwt(isp),conc0(isp),
+     +                     nno(isp),cno(isp),sno(isp),ono(isp)
+ 1005    format(2x,'Added species ',a16,i4,f8.3,f8.3,i4,f8.3,i4,f8.3)
+        endif
+ 10   continue
+
+c--return to the calling subroutine--
+      return
+      end
+

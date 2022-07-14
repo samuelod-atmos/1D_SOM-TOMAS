@@ -1,0 +1,380 @@
+C	SOMSUBS.FOR
+C
+C
+C       Subroutines included to support the SOM.for procedures
+
+       subroutine SOMRXN(k,irxn,i)
+       include 'pspecs.inc'
+       character suffix*30, name2*16,sname*16
+       real omax,pfrag
+c
+c      look at the reactants in the SOM reaction.  change some of the
+c      input parameters if necessary.
+c
+c carbon species
+       jhc=0
+       cmax=0.0
+       do j = 1,nrtosr(irxn)
+        jj=irtosr(j,irxn)
+        if(jj.gt.0)then
+         print*,'som reactant:',name(jj),cno(jj),ono(jj)
+         if(cno(jj).gt.cmax)jhc=jj
+        endif 
+       enddo
+       if(jhc.eq.0)then
+        print*,'please set carbon number for reactants in ',rxnlbl(irxn)
+        stop 'somrxn marker1'
+       endif
+c oxidant species
+       jox=0
+       omax=0.0
+       do j = 1,nrtosr(irxn)
+        jj=irtosr(j,irxn)
+        if(jj.gt.0)then
+         if(ono(jj).gt.omax.and.jj.ne.jhc)jox=jj
+        endif 
+       enddo
+       if(jox.eq.0)then
+        print*,'please set oxygen number for reactants in ',rxnlbl(irxn)
+        stop 'somrxn marker2'
+       endif
+       print*,'som base hydrocarbon:',name(jhc)
+       print*,'som oxidant:',name(jox)
+c reset the upper bound of the carbon dimension of the SOM grid
+       somgrid(2,k) = cno(jhc)
+c
+c      check that all the members of the SOM grid have been created
+c
+       call chksomgrid(k,irxn,i)
+c
+c add the coeficients that will be needed in the reactions
+c
+c fragmentation probability
+       write(iobf16,'("F"i2.2,".",i2.2,".",i1)')k,nint(cno(jhc)),
+     +             nint(ono(jhc))
+       call cofnam(ifrag,.false.)
+       coef(-ifrag) = (ono(jhc)/cno(jhc))**cfrag(k)
+c distribution of fragmented species
+       ifragomax=min(somgrid(4,k),nint(ono(jhc)+1))
+       ifragomin=max(1,nint(ono(jhc))-2)
+       ifragcmax=max(somgrid(1,k),nint(cno(jhc)-1))
+       ifragcmin=max(somgrid(1,k),nint(cno(jhc)-5))
+       print*,'ifrago:',ifragomin,ifragomax
+       print*,'ifragc:',ifragcmin,ifragcmax
+       xfrag = (ifragomax-ifragomin+1)*(ifragcmax-ifragcmin+1)
+       do icno=ifragcmin,ifragcmax
+       do iono=ifragomin,ifragomax
+        write(iobf16,'("G",i2.2,".",i2.2,".",i1)')k,icno,iono
+        call cofnam(ii,.false.)
+        coef(-ii)=1.0/xfrag
+       enddo
+       enddo
+c functionalization probability = compliment of fragmentation 
+       write(iobf16,'("C"i2.2,".",i2.2,".",i1)')k,nint(cno(jhc)),
+     +             nint(ono(jhc))
+       call cofnam(ifunc,.false.)
+       coef(-ifunc) = 1.0 - coef(-ifrag)
+c distribution of functionalized species
+       ifuncomax=min(somgrid(4,k),nint(ono(jhc)+4))
+       ifuncomin=nint(ono(jhc)+1)
+       do iono=ifuncomin,ifuncomax
+        write(iobf16,'("D",i2.2,".",i1)')k,iono
+        call cofnam(ii,.false.)
+        coef(-ii)=pfunc(iono,k)
+       enddo
+c
+c      modify the base rxn so that it references the correct species
+c
+       print*,'replacing som species in rxn:',irxn,rxnlbl(irxn),
+     +           name(iprods(i))
+      print*,'products before modification'
+       do ii=nprods(irxn),nprods(irxn+1)-1
+        if(iprods(ii).gt.0)then
+         print*,ii,iprods(ii),name(iprods(ii))
+        elseif(-iprods(ii).gt.maxmax)then
+         print*,ii,iprods(ii),rxnlbl(-iprods(ii)-maxmax)
+        elseif(-iprods(ii).ge.maxcov)then
+         print*,ii,iprods(ii),coef(-iprods(ii))
+        elseif(-iprods(ii).ne.0)then
+         print*,ii,iprods(ii),coefnm(-iprods(ii))
+        endif
+       enddo
+c count the new products and their coefficients
+       icoef_count=0
+       do ii=i-1,nprods(irxn),-1
+        if(iprods(ii).gt.0)goto 10
+        icoef_count=icoef_count+1 ! allow for another coef
+       enddo
+ 10    continue
+       imult=3+icoef_count ! allow for prod and 2 new coefs + old coefs 
+       nadd = imult*(ifuncomax-ifuncomin+1) 
+       nadd = nadd - 1 - icoef_count ! use the existing prod and coef spots
+c make room for the new products and their coefficients
+       do ir=nrxn,irxn+1,-1
+        do ip=nprods(ir+1)-1,nprods(ir),-1
+         ip2=ip+nadd
+         iprods(ip2)=iprods(ip)
+        enddo ! ip=nprods(ir+1),nprods(ir),-1
+        nprods(ir+1)=nprods(ir+1)+nadd
+       enddo ! nprods(ir+1)-1,nprods(ir),-1
+       do ip = nprods(irxn+1)-1,i+1,-1
+        ip2=ip+nadd
+        iprods(ip2)=iprods(ip)
+       enddo
+       nprods(irxn+1)=nprods(irxn+1)+nadd
+c add the new new products and their coefficients
+       iono=ono(jhc)
+       ibase=i-icoef_count
+       print*,'ibase,icoef_count:',ibase,icoef_count
+       print*,'iprods(27):',iprods(27)
+       do ip=ibase,ibase+(ifuncomax-ifuncomin+1)*imult-1,imult 
+c add the leading coefficients
+        do ii=1,icoef_count
+         iprods(ip+ii-1)=iprods(i-icoef_count+ii-1)
+        enddo
+        print*,'functionalization index:',ip+icoef_count,ifunc
+        if(-ifunc.le.maxcov)print*,'functionalization name:',
+     +         coefnm(-ifunc)
+        iprods(ip+icoef_count)=ifunc
+        iono=iono+1
+        write(iobf16,'("D",i2.2,".",i1)')k,iono
+        call cofnam(ii,.false.)
+        iprods(ip+icoef_count+1)=ii
+        print*,'functionalization coef:',ii
+        if(-ii.le.maxcov)print*,'coef name:',coefnm(-ii)
+c add the new products
+        write(suffix,'("_",i2.2,"_",i2.2)')nint(cno(i)),iono
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         print*, 'could not find som spec:'//somname(k)//suffix
+         stop 'somsubs marker3'
+        endif
+        iprods(ip+icoef_count+2)=ii
+       enddo
+       print*,'maxcov:',maxcov
+       do ii=nprods(irxn),nprods(irxn+1)-1
+        if(iprods(ii).gt.0)then
+         print*,ii,iprods(ii),name(iprods(ii))
+        elseif(-iprods(ii).gt.maxmax)then
+         print*,ii,iprods(ii),rxnlbl(-iprods(ii)-maxmax)
+        elseif(-iprods(ii).ge.maxcov)then
+         print*,ii,iprods(ii),coef(-iprods(ii))
+        elseif(-iprods(ii).ne.0)then
+         print*,ii,iprods(ii),coefnm(-iprods(ii))
+        endif
+       enddo
+
+c
+c write the reactants to the output buffer
+c
+       outbuf = ' '
+       do j = 1,nrtosr(irxn)
+        if(irtosr(j,irxn).gt.0)then
+         sname = name(irtosr(j,irxn))
+        elseif(-irtosr(j,irxn).gt.maxmax)then
+         write(sname,'(a)')rxnlbl(-irtosr(j,irxn)-maxmax)
+         call movlft(sname)
+         write(sname,'(a)')'#RCON'//sname(:nblank(sname))
+        elseif(-irtosr(j,irxn).ge.maxcov)then
+         write(sname,'(f16.3)')coef(-irtosr(j,irxn))
+         call movlft(sname)
+         write(sname,'(a)')'#'//sname(:nblank(sname))
+        elseif(-irtosr(j,irxn).ne.0)then
+         write(sname,'(a)')coefnm(-irtosr(j,irxn))
+         call movlft(sname)
+         write(sname,'(a)')'#'//sname(:nblank(sname))
+        else
+         write(icrt,*)'coefnm(0) is an error!'
+         write(icrt,*)outbuf(:nblank(outbuf))
+         write(icrt,*)(irtosr(i1,irxn),i1=1,nrtosr(irxn))
+         stop 'marker1'
+        endif
+        call movlft(sname)
+        jj = nblank(outbuf) + 2
+        write(outbuf(jj:),'(a)')sname(:nblank(sname))
+c add a plus sign for real species
+        if(irtosr(j,irxn).gt.0)then
+         if(j.lt.nrtosr(irxn))then
+          jj = nblank(outbuf) + 2
+          write(outbuf(jj:),'(a)')'+'
+         endif
+        endif
+       enddo
+c add an equal sign 
+       jj = nblank(outbuf) + 2
+       write(outbuf(jj:),'(a)')'='
+c
+c write the products to the output buffer
+c
+       newrxn = .true.
+       do j = nprods(irxn),nprods(irxn+1)-1
+        if(iprods(j).gt.0)then
+         sname = name(iprods(j))
+        elseif(-iprods(j).gt.maxmax)then
+         write(sname,'(a)')rxnlbl(-iprods(j)-maxmax)
+         call movlft(sname)
+         write(sname,'(a)')'#RCON'//sname(:nblank(sname))
+        elseif(-iprods(j).ge.maxcov)then
+         write(sname,'(f16.3)')coef(-iprods(j))
+         call movlft(sname)
+         write(sname,'(a)')'#'//sname(:nblank(sname))
+        elseif(-iprods(j).ne.0)then
+         write(sname,'(a)')coefnm(-iprods(j))
+         call movlft(sname)
+         write(sname,'(a)')'#'//sname(:nblank(sname))
+        else
+         write(icrt,*)'coefnm(0) is an error!'
+         write(icrt,*)outbuf(:nblank(outbuf))
+         write(icrt,*)(iprods(i1),i1=nprods(irxn),nprods(irxn+1)-1)
+         stop 'marker2'
+        endif
+        call movlft(sname)
+        jj = nblank(outbuf) + 2
+        write(outbuf(jj:),'(a)')sname(:nblank(sname))
+        jj = nblank(outbuf) + 2
+        if(iprods(j).gt.0 .and. j.lt.nprods(irxn+1)-1)then
+         write(outbuf(jj:),'(a)')'+'
+        endif
+c intermediate dump of the output buffer if necessary
+        jj = nblank(outbuf) + 2
+        if(jj.ge.62 .and. j.lt.nprods(irxn+1)-1)then
+         write(outbuf(jj:),'(a)')'&'
+c         write(unit3)newrxn,jj,outbuf(:jj)
+         if(newrxn)then
+          write(out,'(1x,a6,1x,(a))')rxnlbl(irxn),outbuf(:jj)
+          newrxn = .false.
+         else
+          write(out,'(10x,(a))')outbuf(:jj)
+         endif
+         outbuf = ' '
+        endif
+       enddo
+c
+c final dump of the output buffer
+c
+       jj = nblank(outbuf)
+c       write(unit3)newrxn,jj,outbuf(:jj)
+        if(newrxn)then
+         write(out,'(1x,a6,1x,(a))')rxnlbl(irxn),outbuf(:jj)
+         newrxn = .false.
+        else
+         write(out,'(10x,(a))')outbuf
+        endif
+       
+       return
+       end
+
+
+
+        SUBROUTINE SOMSPCNAM(ISP,SPNAME,RX)
+C
+C       DETERMINE SPECIES NO. FOR NAME IN SOMSPNAME.  RETURNS SPECIES NO. IN
+C       ISP.  ADDS SPECIES TO NAME to ARRAY IF NEW, AND DO OTHER UPDATING.
+C
+C       CALLED FROM:  RDRXN, SOM
+C
+C
+C       ARGUMENTS
+C
+        LOGICAL   RX
+        integer i
+        CHARACTER*16 SPNAME
+C
+C       SPECIFICATIONS FOR PREPARATION PROGRAM VARIABLES, PARAMETERS, AND
+C       ARRAYS
+C
+        INCLUDE 'pspecs.inc'
+C
+C
+       DO 1122 ISP=1,NSOM
+        IF (SOMNAME(ISP).EQ.SPNAME)THEN
+D        WRITE (OUT,*) 'SPCNAM: (OLD) ',SOMNAME(ISP),'  SPC NO.=',ISP
+         IF (.NOT.RX) THEN
+C if there needs to be any processing of an already specified SOM species
+C put it here.
+         ENDIF
+         RETURN
+        ENDIF
+ 1122  CONTINUE
+C  -     NAME NOT FOUND - NEW SPECIES ADDED TO LIST
+ 1125  NSOM=NSOM+1
+       IF (NSOM.GT.MAXNS) THEN
+                I=MAXNS
+                IF (RX) WRITE (OUT,1127) OUTBUF
+ 1127           FORMAT (' ',A80)
+                WRITE (OUT,*) 'TOO MANY SPECIES.  MAX =',I
+                STOP 'TOO MANY SPECIES'
+       ENDIF
+       ISP=NSOM
+       SOMNAME(NSOM)=SPNAME
+       IF (IND.GT.0) THEN
+c        write in the default SOM properties
+       ELSE
+                WRITE (OUT,*) 'PGM ER. IND<0 AT SOMSPCNAM'
+       ENDIF
+       RETURN
+       END
+
+
+
+      subroutine chksomgrid(k,irxn,i)
+c********************************************************************
+c written by: Mike Kleeman (June 2013)
+c             UC Davis CEE
+c
+c The purpose of this subroutine is to check and see if the SOM grid
+c has been created for species k.
+c
+c The suffix added to "basename" will be _C_O... where C is
+c the carbon number and O is the oxygen number. 
+c
+c Note that the include file pspecs.inc has common blocks that pass 
+c most of the i/o.
+c
+c Inputs:
+c  k     - base SOM species
+c  irxn  - rxn where the SOM species was detected
+c  i     - SOM product in the target rxn
+c
+c Outputs:
+c
+c********************************************************************
+
+      include 'pspecs.inc'
+      character suffix*30, name2*16
+
+c--check to see if the SOM grid has been added to the active list--
+      do 10 no = somgrid(3,k),somgrid(4,k)
+       do 10 nc = somgrid(1,k),somgrid(2,k)
+        write(suffix,'("_",i2.2,"_",i2.2)')nc,no
+        ii = ifindspc(somname(k),suffix)
+        if(ii.le.0)then
+         if(ns+1.gt.maxns) stop 'chksomgrid marker3: exceeded ns'
+         write(name2,'(a)')somname(k)(:nblank(somname(k)))//
+     +                     suffix(:nblank(suffix))
+c         print*,'adding species 1**'//name2//'**'
+         call spcnam(isp,name2,.true.)
+         ii=iprods(i)
+         sptyp(isp) = sptyp(ii)
+         mwt(isp) = mwt(ii)
+         conc0(isp) = conc0(ii)
+         nno(isp) = nno(ii)
+         nsno(isp) = nsno(ii)
+         cno(isp) = nc
+         csno(isp) = nc
+         ono(isp) = no
+         osno(isp) = no
+         sno(isp) = sno(ii)
+         ssno(isp) = ssno(ii)
+         xno(isp) = xno(ii)
+         xsno(isp) = xsno(ii)
+         write(typ1, 1005) name(isp),sptyp(isp),mwt(isp),conc0(isp),
+     +                     nno(isp),cno(isp),sno(isp),ono(isp)
+ 1005    format(2x,'Added species ',a16,i4,f8.3,f8.3,i4,f8.3,i4,f8.3)
+        endif
+ 10   continue
+
+c--return to the calling subroutine--
+      return
+      end
+

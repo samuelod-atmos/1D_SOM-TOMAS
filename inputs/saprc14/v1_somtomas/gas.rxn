@@ -1,0 +1,68 @@
+!----------------------------------------------------------------------------
+!              DUMMY REACTIONS AND GAS TO PARTICLE CONVERSION REACTIONS
+!
+!  Written by:  Mike Kleeman (Sept 1995)
+!               Environmental Engineering
+!               California Institute of Technology
+!               Pasadena CA 91125
+!
+!	Updated by MJM 11/8/03
+!	Added #S's to species definitions
+!
+!
+!  The purpose of this module is to specify dummy reactions for certain
+!  variables so that the prep program does not delete them from the active
+!  array.  This file also defines any gas to particle conversion reactions
+!  which must be considered in the gas phase mechanism.  When using the split
+!  operator formulation, only those gas phase species in steady state which
+!  undergo gas to particle conversion need to be included.
+!
+!  References for this work are:
+!
+!  1. W.Carter,"Documentation For The SAPRC Atmospheric Photochemical
+!  Mechanism Preparation And Emissions Processing Programs For
+!  Implementation In Airshed Models", California Air Resources Board,
+!  contract# a5-122-32, October 1988.
+!
+!  2. W.Jaeschke,"Chemistry Of Multiphase Atmospheric Systems", NATO ASI
+!  Series, 1983.
+!
+! Active species in this file:
+.ACT
+!	 ---- Defaults for ----
+!       Conc(0)  Mwt   #C's  #N's #S's #O's #X's
+!
+HCL        0.0  36.46   0     0    0
+NH3        0.0  17.03   0     1    0    0
+GDENS      0.0   0      0     0    0    0
+MMOLES     0.0   0      0     0    0    0
+XICBC      0.0   0.0    0     0    0 
+YICBC      0.0   0.0    0     0    0
+ZICBC      0.0   0.0    0     0    0
+!
+!
+!	Select species to type
+.TYP
+!	---- Select appropriate type-o-matic behavior ----
+!	Atom   #sources
+!
+!NH3       N       9
+!
+! Units in this file are not to be altered by the prep program:
+.UNITS=OK
+!
+! Semivolatile organic yields.  Note dummy rate constant of 1.0 min-1.
+! Yield information obtained from CMAQ module orgaer5.f
+.RXN
+D1)  1.000E-25   0.00   0.000;  HCL = HCL
+D2)  1.000E-25   0.00   0.000;  NH3 = NH3
+D3)  1.000E-25   0.00   0.000;  GDENS = GDENS
+D4)  1.000E-25   0.00   0.000;  MMOLES = MMOLES
+D5)  1.000E-25   0.00   0.000;  XICBC = XICBC
+D6)  1.000E-25   0.00   0.000;  YICBC = YICBC
+D7)  1.000E-25   0.00   0.000;  ZICBC = ZICBC
+!
+.
+.UNITS=PPM
+!
+! End of file
